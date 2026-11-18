@@ -11,7 +11,7 @@ This file states the rules for agents completely. Decisions with background are 
 |---|---|
 | `infos/` | Thomas's concept — see "Concept area" below |
 | `decisions/` | ADRs `ADR-paragraph-82b-NNNN` |
-| `docs/` | Project documents: `Architecture.md` (software architecture), `Data_Model.md` (data model); final result only; the matching `.html` (`Architecture.html`, `Data_Model.html`) shows the history of versions and changes and is published as an artifact |
+| `docs/` | Project documents: `Architecture.md` (software architecture), `Data_Model.md` (data model); final result only; the matching `.html` (`Architecture.html`, `Data_Model.html`) shows the history of versions and changes and is published as an artifact; `docs/agents/` maps the agent skills onto this repository |
 | `TASKS.md` | Open work |
 | `the-real-and-final-paragraph82b/` | Application sources (submodule) |
 
@@ -103,6 +103,20 @@ Tasks are tracked in `TASKS.md` (sections In progress, Blocked, Open, Done). Ope
 
 ## Tech stack
 Python/FastAPI, SQLAlchemy, Next.js/TypeScript, PostgreSQL with pgvector. Details follow in the submodule.
+
+## Agent skills
+
+### Issue tracker
+
+Tasks in `TASKS.md` are the issue tracker; no GitHub issues or pull requests. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five default roles, written as markers in a task entry. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `GLOSSARY.md` at the root (created lazily), ADRs in `decisions/`. See `docs/agents/domain.md`.
 
 ## Related
 The earlier module prototype (`AlpsoftGmbH/paragraph_82b`) serves only as reference for concepts and comparison.
