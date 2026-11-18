@@ -67,6 +67,7 @@ footer { font-size: 0.85rem; }
     <p class="muted">How the software architecture came about: versions, decisions and reasons, newest first. The current result is <code>docs/Architecture.md</code> in the main repository.</p>
     <nav aria-label="Sections">
       <a href="#open">Open decisions</a>
+      <a href="#v11">v11</a>
       <a href="#v10">v10</a>
       <a href="#v9">v9</a>
       <a href="#v8">v8</a>
@@ -92,18 +93,32 @@ footer { font-size: 0.85rem; }
         <tr><td><code>A5</code></td><td>Orchestrator and worker runtime, job transport, worker inputs</td><td>A1</td><td>decided v5</td></tr>
         <tr><td><code>A6</code></td><td>Object storage details: provider, local setup, key layout, encryption, retention (object storage itself decided in v5)</td><td>A2</td><td>decided v8 (key layout and retention still open)</td></tr>
         <tr><td><code>A7</code></td><td>Tenant separation and confidentiality measures</td><td>A1</td><td>decided v10</td></tr>
-        <tr><td><code>A8</code></td><td>Authentication, roles, feature flags (four dimensions, D06)</td><td>A7</td><td>next</td></tr>
-        <tr><td><code>A9</code></td><td>Frontend–backend API and live progress</td><td>A1, A5</td><td>open</td></tr>
-        <tr><td><code>A10</code></td><td>Report and checklist generation (PDF, branding)</td><td>A1</td><td>open</td></tr>
-        <tr><td><code>A11</code></td><td>Rulebooks (Pfade) as configuration</td><td>A1</td><td>open</td></tr>
+        <tr><td><code>A8</code></td><td>Authentication, roles, feature flags (four dimensions, D06)</td><td>A7</td><td>deferred v11</td></tr>
+        <tr><td><code>A9</code></td><td>Frontend–backend API and live progress</td><td>A1, A5</td><td>next</td></tr>
+        <tr><td><code>A10</code></td><td>Report and checklist generation (PDF, branding)</td><td>A1</td><td>deferred v11</td></tr>
+        <tr><td><code>A11</code></td><td>Rulebooks (Pfade) as configuration</td><td>A1</td><td>deferred v11</td></tr>
         <tr><td><code>A12</code></td><td>Observability stack</td><td>A2</td><td>open</td></tr>
         <tr><td><code>A13</code></td><td>Testing and measuring processing quality without labelled data (A07)</td><td>A4, A5</td><td>open</td></tr>
       </tbody>
     </table></div>
   </section>
 
+  <section id="v11">
+    <div class="head"><h2>v11</h2><span class="tag current">current</span><span class="muted">2026-11-18 · processing unit first</span></div>
+    <div class="tablebox"><table>
+      <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td><span class="kind add">decided</span></td><td>Order of work: project processing first, as a self-contained unit (modules akt, processing, ai, knowledge up to key info extraction, notes; minimal api and frontend; PostgreSQL, Redis, MinIO, orchestrator, workers), integrated into the platform afterwards</td><td>Andreas, 2026-11-18: "zuerst sollte die Projektverarbeitung soweit funktionieren als Einheit, die danach integriert werden kann"</td></tr>
+        <tr><td><span class="kind add">new</span></td><td>Integration seam: a small identity interface gives the current user and project; until A8 a stub returns one development user with access to every project, no login; Row Level Security and encryption wrappers already go through it</td><td>Integration later replaces the stub, not the callers</td></tr>
+        <tr><td><span class="kind chg">deferred</span></td><td>A8 login, roles, feature flags; A10 reports; A11 rulebooks — until the processing unit works</td><td>Andreas, 2026-11-18</td></tr>
+        <tr><td><span class="kind add">new</span></td><td>Notes for A8: Entra ID matters to Alpsoft; Keycloak and Zitadel explained as self-hosted identity brokers (login, MFA, Entra federation, tokens; permissions stay in the app); direct Entra integration as alternative. For whom Entra matters (own staff, customers, both) is still to be answered</td><td>Discussion 2026-11-18</td></tr>
+        <tr><td><span class="kind chg">changed</span></td><td>Open decisions now: A9 API and live progress, A13 testing and quality, A12 observability (minimal)</td><td>What the processing unit needs</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
   <section id="v10">
-    <div class="head"><h2>v10</h2><span class="tag current">current</span><span class="muted">2026-11-18 · A7 tenant separation</span></div>
+    <div class="head"><h2>v10</h2><span class="tag">earlier</span><span class="muted">2026-11-18 · A7 tenant separation</span></div>
     <div class="tablebox"><table>
       <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
       <tbody>

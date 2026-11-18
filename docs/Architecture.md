@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 10 · 2026-11-18 · Task T-3
+Status: **draft** · Version 11 · 2026-11-18 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -19,6 +19,15 @@ Markers: **Decided** (name, date) · **Suggestion** (not decided) · **Open** (s
 - **Out of scope:** mobile/offline, recurring checks and monitoring, QM App interface, plan analysis, architect and
   authority access, other rulebooks (D17, D18).
 - Processing is described in the most depth: it decides the value of the product (D15).
+- **Order of work** (Andreas, 2026-11-18): **project processing first, as a self-contained unit** that works on
+  its own and is integrated into the platform afterwards. Login, roles, feature flags, reports and rulebooks are
+  decided later.
+  - The processing unit covers the modules akt, processing, ai, knowledge (up to key info extraction, as the data
+    model) and notes, plus what they need to run and to be seen: a minimal api and frontend, PostgreSQL, Redis,
+    MinIO, orchestrator and workers.
+  - **Integration seam:** the unit gets the current user and the project from a small identity interface. Until A8,
+    a stub returns one development user with access to every project; no login. Row Level Security and the
+    encryption wrappers are already called through this seam, so integration replaces the stub, not the callers.
 
 ## 2. Quality goals
 
@@ -372,13 +381,13 @@ flowchart LR
 
 ## Open decisions
 
-Worked through one at a time, in this order (later ones depend on earlier ones).
+Worked through one at a time. Needed for the processing unit first; the rest waits until it works.
 
-| ID | Decision | Depends on |
-|---|---|---|
-| A8 | Authentication, roles, feature flags (four dimensions, D06) | A7 |
-| A9 | Frontend–backend API and live progress | A1 |
-| A10 | Report and checklist generation (PDF, branding) | A1 |
-| A11 | Rulebooks (Pfade) as configuration | A1 |
-| A12 | Observability stack | A2 |
-| A13 | Testing and measuring processing quality without labelled data (A07) | — |
+| ID | Decision | Depends on | When |
+|---|---|---|---|
+| A9 | Frontend–backend API and live progress (for the processing unit) | A1 | now |
+| A13 | Testing and measuring processing quality without labelled data (A07) | — | now |
+| A12 | Observability stack | A2 | now (minimal) |
+| A8 | Authentication, roles, feature flags (four dimensions, D06); Entra ID matters, a self-hosted broker such as Keycloak or Zitadel was discussed | A7 | after the processing unit |
+| A10 | Report and checklist generation (PDF, branding) | A1 | after the processing unit |
+| A11 | Rulebooks (Pfade) as configuration | A1 | after the processing unit |
