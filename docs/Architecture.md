@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 14 · 2026-11-18 · Task T-3
+Status: **draft** · Version 15 · 2026-11-18 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -382,8 +382,9 @@ through wrappers that will handle encryption later; today they pass data through
   key infos are representative** (a sample, not all of them).
 - **Stored outside Git**, on a shared Alpsoft drive (a subdirectory of the mount); found through an environment
   variable with its path. Neither the main repository nor the source submodule holds real data (AGENTS.md rule 6,
-  ADR-paragraph-82b-0005). **Open:** where the drive is hosted; if it is a Microsoft cloud service, the same question
-  as for GitHub applies (A2). **Open:** the dataset's file format (needed for the loader).
+  ADR-paragraph-82b-0005). The drive is fine for this data (Andreas, 2026-11-18).
+- Layout (Andreas, 2026-11-18): a folder with the files already grouped, plus text files with labels and decisions.
+  The exact format follows when the dataset is ready; the loader is built then.
 
 ### What is measured, stage by stage
 
