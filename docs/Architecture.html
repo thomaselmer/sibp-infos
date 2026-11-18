@@ -67,6 +67,7 @@ footer { font-size: 0.85rem; }
     <p class="muted">How the software architecture came about: versions, decisions and reasons, newest first. The current result is <code>docs/Architecture.md</code> in the main repository.</p>
     <nav aria-label="Sections">
       <a href="#open">Open decisions</a>
+      <a href="#v16">v16</a>
       <a href="#v15">v15</a>
       <a href="#v14">v14</a>
       <a href="#v13">v13</a>
@@ -101,14 +102,27 @@ footer { font-size: 0.85rem; }
         <tr><td><code>A9</code></td><td>Frontend–backend API and live progress</td><td>A1, A5</td><td>decided v12, upload path v13</td></tr>
         <tr><td><code>A10</code></td><td>Report and checklist generation (PDF, branding)</td><td>A1</td><td>deferred v11</td></tr>
         <tr><td><code>A11</code></td><td>Rulebooks (Pfade) as configuration</td><td>A1</td><td>deferred v11</td></tr>
-        <tr><td><code>A12</code></td><td>Observability stack</td><td>A2</td><td>next</td></tr>
+        <tr><td><code>A12</code></td><td>Observability stack</td><td>A2</td><td>decided v16</td></tr>
         <tr><td><code>A13</code></td><td>Testing and measuring processing quality without labelled data (A07)</td><td>A4, A5</td><td>decided v14</td></tr>
       </tbody>
     </table></div>
   </section>
 
+  <section id="v16">
+    <div class="head"><h2>v16</h2><span class="tag current">current</span><span class="muted">2026-11-18 · A12 observability</span></div>
+    <div class="tablebox"><table>
+      <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td><span class="kind add">decided</span></td><td>Minimal now: structured JSON logs to stdout (ids, project, job type, lane, duration, status, attempt, tokens; no content) and a small internal status page from the JOB and TOKEN_USAGE tables</td><td>Andreas, 2026-11-18. Enough for the processing unit; no extra containers yet</td></tr>
+        <tr><td><span class="kind add">decided</span></td><td>Later on dev and prod: self-hosted Grafana with Prometheus and Loki through OpenTelemetry; same log fields, no code changes</td><td>Andreas, 2026-11-18. Self-hosted in line with A2</td></tr>
+        <tr><td><span class="kind add">decided</span></td><td>LLM tracing with self-hosted Langfuse, local only; never on dev or prod for now</td><td>Andreas, 2026-11-18. Traces contain document content</td></tr>
+        <tr><td><span class="kind del">rejected</span></td><td>Grafana stack from the start; no LLM tracing; LangSmith</td><td>More containers than needed now; flows are hard to debug without traces; LangSmith is hosted in the US and would send confidential content out</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
   <section id="v15">
-    <div class="head"><h2>v15</h2><span class="tag current">current</span><span class="muted">2026-11-18 · golden dataset storage</span></div>
+    <div class="head"><h2>v15</h2><span class="tag">earlier</span><span class="muted">2026-11-18 · golden dataset storage</span></div>
     <div class="tablebox"><table>
       <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
       <tbody>

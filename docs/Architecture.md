@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 15 · 2026-11-18 · Task T-3
+Status: **draft** · Version 16 · 2026-11-18 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -371,7 +371,16 @@ through wrappers that will handle encryption later; today they pass data through
   a log/metrics store for the operator across projects (job durations, failure rates, retries, queue length, worker
   heartbeats, token usage over time). Matches D14 ("Logging / Ereignisprotokoll" and "Systemmonitoring").
 - Monitoring holds only ids, counts and durations, no customer content (D06).
-- **Open** (A12): concrete stack (the data model names Grafana as an example).
+- **Minimal now, Grafana stack later** (Andreas, 2026-11-18, A12):
+  - Now: api, orchestrator and workers write **structured JSON logs to stdout** (ids, project, job type, lane,
+    duration, status, attempt, tokens; no content). A small internal status page reads the JOB and TOKEN_USAGE tables:
+    queue length per lane, running and failed jobs, cost per project and job type.
+  - Later on dev and prod: self-hosted Grafana with Prometheus (metrics) and Loki (logs), fed through OpenTelemetry;
+    the log fields stay the same, so no code changes. Self-hosted, in line with A2.
+- **LLM tracing with self-hosted Langfuse, local only** (Andreas, 2026-11-18, A12): shows each flow step, prompt,
+  answer and tokens for debugging. Traces contain document content, so Langfuse runs only locally (e.g. with the
+  golden dataset), never on dev or prod for now. No LangSmith: it is hosted by a US company and would send
+  confidential content out (A2, AGENTS.md rule 6).
 
 ## 11. Testing and quality
 
@@ -468,7 +477,6 @@ Worked through one at a time. Needed for the processing unit first; the rest wai
 
 | ID | Decision | Depends on | When |
 |---|---|---|---|
-| A12 | Observability stack | A2 | now (minimal) |
 | A8 | Authentication, roles, feature flags (four dimensions, D06); Entra ID matters, a self-hosted broker such as Keycloak or Zitadel was discussed | A7 | after the processing unit |
 | A10 | Report and checklist generation (PDF, branding) | A1 | after the processing unit |
 | A11 | Rulebooks (Pfade) as configuration | A1 | after the processing unit |
