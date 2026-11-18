@@ -67,6 +67,7 @@ footer { font-size: 0.85rem; }
     <p class="muted">How the software architecture came about: versions, decisions and reasons, newest first. The current result is <code>docs/Architecture.md</code> in the main repository.</p>
     <nav aria-label="Sections">
       <a href="#open">Open decisions</a>
+      <a href="#v23">v23</a>
       <a href="#v22">v22</a>
       <a href="#v21">v21</a>
       <a href="#v20">v20</a>
@@ -114,8 +115,19 @@ footer { font-size: 0.85rem; }
     </table></div>
   </section>
 
+  <section id="v23">
+    <div class="head"><h2>v23</h2><span class="tag current">current</span><span class="muted">2026-11-18 · order of work for the proof of concept</span></div>
+    <div class="tablebox"><table>
+      <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td><span class="kind add">decided</span></td><td>Order: (1) the whole job pool architecture as intended; (2) job functions one after another, measured on the golden dataset; (3) frontend and user flow, also to look at the data; (4) permissions and encryption patched in afterwards</td><td>Andreas, 2026-11-18: a working base first, permissions and encryption only need patching</td></tr>
+        <tr><td><span class="kind add">new</span></td><td>Three rules keep (4) a patch: all file access through the one file interface; content columns only through the owning module; project_id on every content row</td><td>Without them, encryption and Row Level Security later mean touching every caller</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
   <section id="v22">
-    <div class="head"><h2>v22</h2><span class="tag current">current</span><span class="muted">2026-11-18 · proof of concept first</span></div>
+    <div class="head"><h2>v22</h2><span class="tag">earlier</span><span class="muted">2026-11-18 · proof of concept first</span></div>
     <div class="tablebox"><table>
       <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
       <tbody>

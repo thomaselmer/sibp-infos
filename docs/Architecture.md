@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 22 · 2026-11-18 · Task T-3
+Status: **draft** · Version 23 · 2026-11-18 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -34,6 +34,12 @@ Markers: **Decided** (name, date) · **Suggestion** (not decided) · **Open** (s
   - In the proof of concept: engine, job pool, workers and the job types up to key info extraction, with PostgreSQL
     and Redis; files on the local disk behind a small file interface; started from the command line on a folder.
   - Not in the proof of concept: api, frontend, login and access, encryption, object storage product, deployment.
+  - **Order** (Andreas, 2026-11-18): (1) the whole job pool architecture as intended (engine, events, lanes,
+    sorted queues, semaphores, leases, cap, result streams, restart); (2) the job functions one after another, each
+    measured against the golden dataset; (3) frontend and user flow, also to look at the data; (4) permissions and
+    encryption patched in afterwards.
+  - So that (4) stays a patch: every file read and write goes through the one file interface; content columns are
+    read and written only through the owning module's interface; every content row carries project_id.
   - **Object storage and encryption are Thomas's decisions** (Andreas, 2026-11-18); sections 8 and 9 hold the
     current proposal until he decides.
 
