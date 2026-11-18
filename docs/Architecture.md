@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 19 · 2026-11-18 · Task T-3
+Status: **draft** · Version 20 · 2026-11-18 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -407,7 +407,7 @@ through wrappers that will handle encryption later; today they pass data through
   folder, files and pages from the subfolder) and key infos (from the YAML, with type). Tests and quality runs both
   use it; quality runs feed the files through the same path as an upload (`ingest_file`), so the real processing is
   measured, not a test-only path.
-  - **Suggestion** (to confirm): environment variable `P82B_GOLDEN_DATASET_DIR` with the path.
+  - Environment variable with the path: `P82B_GOLDEN_DATASET_DIR` (Andreas, 2026-11-18).
 
 ### What is measured, stage by stage
 
