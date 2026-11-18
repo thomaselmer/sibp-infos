@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 9 · 2026-11-18 · Task T-3
+Status: **draft** · Version 10 · 2026-11-18 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -272,11 +272,17 @@ Consequences and guidelines:
 - Files and page images live in S3-compatible object storage; workers read and write there directly (A5).
 - **MinIO in every environment** (Andreas, 2026-11-18, A6), self-run in Docker Compose; code speaks only the S3 API.
   Replication and backups of the files are our job.
-- **Decided** (Andreas, 2026-11-18): key layout `tenants/<tenant>/projects/<project>/files/…`, `…/pages/…`; deleting a
-  project deletes its prefix; MinIO policies can be set per prefix; per-tenant keys can come later without moving
-  files.
+- **Decided** (Andreas, 2026-11-18, A7): key layout `projects/<project>/files/…`, `projects/<project>/pages/…`.
+  Projects are shared and transferred between tenants (D05, D10), so the prefix is the project, not a tenant;
+  deleting a project deletes its prefix; MinIO policies can be set per prefix.
 - **Open:** retention of files after a project is deleted; backup schedule (with A2).
-- **Open** (A7): how tenants are separated.
+- **Tenant separation** (Andreas, 2026-11-18, A7): **shared schema, the project is the unit of separation.**
+  - All tenants share the same tables. Content rows hang on project_id; Row Level Security lets a request see only
+    rows of projects its tenant or user has access to (PROJECT_ACCESS).
+  - Tenant-owned data (users, plans, branding, settings) carries tenant_id and is filtered by it.
+  - Revoking or transferring access changes PROJECT_ACCESS only; no data moves (D06, D10).
+  - The data model leaves tenants out of its current scope; TENANT and the project's link to tenants are added there
+    later.
 
 ## 8. Security and confidentiality
 
@@ -289,14 +295,16 @@ tenant).
 **Decided** (Andreas, 2026-11-18): **plain text during development, behind empty wrappers.** All content passes
 through wrappers that will handle encryption later; today they pass data through unchanged.
 
-| Wrapper | Wraps | Today | Later (per-tenant keys) |
+| Wrapper | Wraps | Today | Later (per-project keys) |
 |---|---|---|---|
-| file store | every read and write of files and page images (api and workers) | passes bytes through | encrypts and decrypts with the tenant's data key |
+| file store | every read and write of files and page images (api and workers) | passes bytes through | encrypts and decrypts with the project's data key |
 | field cipher | content columns marked as confidential in the data model | passes values through | encrypts and decrypts those columns |
-| key provider | data keys per tenant | returns no key | gets the tenant's data key from a key service (envelope encryption) |
+| key provider | data keys per project | returns no key | gets the project's data key, unwrapped with the key of a tenant that has access (envelope encryption) |
 
 - No code reads or writes content around the wrappers; this keeps encryption a later change in one place.
-- Every call carries the tenant (and project), so a later implementation knows which key to use.
+- Every call carries the project (and the requesting tenant), so a later implementation knows which key to use.
+- **Later key scheme** (Andreas, 2026-11-18, A7): one data key per project, wrapped once for every tenant with
+  access; revoking access deletes that tenant's wrapping. Fits shared and transferred projects.
 - Limits for later: encrypted columns cannot be searched in PostgreSQL; embeddings stay unencrypted for vector
   search; workers need the keys; the model provider always sees plain text. Which columns get the field cipher is
   decided with the data model.
@@ -313,7 +321,7 @@ through wrappers that will handle encryption later; today they pass data through
 - Support access only with a stored, time-limited grant by the tenant admin; every content access logged and
   visible to the customer.
 
-**Open** (A7, A8): tenant separation, authentication and roles in detail.
+**Open** (A8): authentication and roles in detail.
 
 ## 9. Observability
 
@@ -368,7 +376,6 @@ Worked through one at a time, in this order (later ones depend on earlier ones).
 
 | ID | Decision | Depends on |
 |---|---|---|
-| A7 | Tenant separation and confidentiality measures | A1 |
 | A8 | Authentication, roles, feature flags (four dimensions, D06) | A7 |
 | A9 | Frontend–backend API and live progress | A1 |
 | A10 | Report and checklist generation (PDF, branding) | A1 |

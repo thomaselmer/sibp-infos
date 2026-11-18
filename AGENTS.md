@@ -67,6 +67,8 @@ This file states the rules for agents completely. Decisions with background are 
   (ADR-paragraph-82b-0006).
 - Runtime: orchestrator processes host one engine per project; Redis carries jobs and results; workers use object
   storage, never the database (ADR-paragraph-82b-0007).
+- Tenants: shared schema, the project is the unit of separation (Row Level Security on project access)
+  (ADR-paragraph-82b-0008).
 - Details: `docs/Architecture.md`.
 
 ## Decisions (ADRs)

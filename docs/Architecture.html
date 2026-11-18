@@ -67,6 +67,7 @@ footer { font-size: 0.85rem; }
     <p class="muted">How the software architecture came about: versions, decisions and reasons, newest first. The current result is <code>docs/Architecture.md</code> in the main repository.</p>
     <nav aria-label="Sections">
       <a href="#open">Open decisions</a>
+      <a href="#v10">v10</a>
       <a href="#v9">v9</a>
       <a href="#v8">v8</a>
       <a href="#v7">v7</a>
@@ -90,8 +91,8 @@ footer { font-size: 0.85rem; }
         <tr><td><code>A4</code></td><td>LLM integration layer: LangChain/LangGraph vs own thin layer (D19)</td><td>A3</td><td>decided v4</td></tr>
         <tr><td><code>A5</code></td><td>Orchestrator and worker runtime, job transport, worker inputs</td><td>A1</td><td>decided v5</td></tr>
         <tr><td><code>A6</code></td><td>Object storage details: provider, local setup, key layout, encryption, retention (object storage itself decided in v5)</td><td>A2</td><td>decided v8 (key layout and retention still open)</td></tr>
-        <tr><td><code>A7</code></td><td>Tenant separation and confidentiality measures</td><td>A1</td><td>next</td></tr>
-        <tr><td><code>A8</code></td><td>Authentication, roles, feature flags (four dimensions, D06)</td><td>A7</td><td>open</td></tr>
+        <tr><td><code>A7</code></td><td>Tenant separation and confidentiality measures</td><td>A1</td><td>decided v10</td></tr>
+        <tr><td><code>A8</code></td><td>Authentication, roles, feature flags (four dimensions, D06)</td><td>A7</td><td>next</td></tr>
         <tr><td><code>A9</code></td><td>Frontend–backend API and live progress</td><td>A1, A5</td><td>open</td></tr>
         <tr><td><code>A10</code></td><td>Report and checklist generation (PDF, branding)</td><td>A1</td><td>open</td></tr>
         <tr><td><code>A11</code></td><td>Rulebooks (Pfade) as configuration</td><td>A1</td><td>open</td></tr>
@@ -101,8 +102,22 @@ footer { font-size: 0.85rem; }
     </table></div>
   </section>
 
+  <section id="v10">
+    <div class="head"><h2>v10</h2><span class="tag current">current</span><span class="muted">2026-11-18 · A7 tenant separation</span></div>
+    <div class="tablebox"><table>
+      <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td><span class="kind add">decided</span></td><td>Shared schema; the project is the unit of separation: content rows hang on project_id, Row Level Security shows only rows of projects the tenant or user has access to; tenant-owned data carries tenant_id; ADR-paragraph-82b-0008 (Proposed)</td><td>Andreas, 2026-11-18. Projects belong to no single tenant and are shared and transferred (D05, D10); revoking changes only access records (D06)</td></tr>
+        <tr><td><span class="kind chg">changed</span></td><td>Key layout projects/&lt;project&gt;/files/…, …/pages/… instead of tenants/&lt;tenant&gt;/projects/&lt;project&gt;/…</td><td>Andreas, 2026-11-18. With a tenant prefix, files would move on every transfer and a shared project would sit under one tenant</td></tr>
+        <tr><td><span class="kind chg">changed</span></td><td>Later key scheme: one data key per project, wrapped once for every tenant with access; revoking deletes that wrapping; wrappers carry the project</td><td>Andreas, 2026-11-18. Per-tenant keys do not fit a project that two tenants see</td></tr>
+        <tr><td><span class="kind chg">open</span></td><td>TENANT and the project's link to tenants in the data model</td><td>The data model leaves tenants out of its current scope</td></tr>
+        <tr><td><span class="kind del">rejected</span></td><td>Schema or database per tenant</td><td>Shared and transferred projects do not fit; heavy migrations</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
   <section id="v9">
-    <div class="head"><h2>v9</h2><span class="tag current">current</span><span class="muted">2026-11-18 · access measures, placement of job types</span></div>
+    <div class="head"><h2>v9</h2><span class="tag">earlier</span><span class="muted">2026-11-18 · access measures, placement of job types</span></div>
     <div class="tablebox"><table>
       <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
       <tbody>
