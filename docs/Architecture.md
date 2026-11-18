@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 24 · 2026-11-18 · Task T-3
+Status: **draft** · Version 25 · 2026-11-18 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -156,7 +156,8 @@ Decided so far (data model, section "Architecture, not ER model", and versions v
 
 - **Event-driven job pool, not a pipeline** (Andreas, 2026-11-17; ADR-paragraph-82b-0003). Any stage can be reset by
   invalidating its jobs.
-- **One orchestrator per project;** projects never reference each other (Andreas, 2026-11-17).
+- **One engine per project** (first called an orchestrator per project, renamed in A5 below); projects never
+  reference each other (Andreas, 2026-11-17).
 - **Events** are stored in a table and consumed by the project's orchestrator in order. Consuming an event and its
   effects (new jobs, dependencies, stale marks) is one transaction; open events are processed again after a restart
   (Andreas, 2026-11-17, v28). The engine keeps an in-memory view of the project state.
@@ -212,25 +213,73 @@ Decided so far (data model, section "Architecture, not ER model", and versions v
   images straight from object storage and saves new files there (e.g. a turned page), returning the key in its
   result. Workers never touch the database.
 
+### How the parts are linked
+
+Solid arrows carry work, dashed arrows only wake or report. PostgreSQL is the source of truth; Redis holds only
+messages in transit.
+
+```mermaid
+flowchart LR
+  FE["frontend (Next.js)"] -->|"REST: upload, start run"| API[api]
+  API -.->|"SSE: status per stage"| FE
+  API -->|"FILE rows, user event"| DB[("PostgreSQL<br/>events, jobs, content")]
+  API -->|"originals"| FS[("file store")]
+  DB -.->|"NOTIFY: new user event"| ORC
+  subgraph ORC["orchestrator process (any number)"]
+    direction TB
+    EA["engine: project A"]
+    EB["engine: project B"]
+  end
+  ORC -->|"advisory lock per project"| DB
+  EA -->|"one transaction: consume event or<br/>write result, create follow-up jobs"| DB
+  EA -->|"push runnable jobs<br/>(priority, project cap)"| LQ[["Redis lane queues<br/>code · one per model"]]
+  LQ -->|"take with lease"| W["workers (any number)"]
+  W -.->|"heartbeat extends lease"| LQ
+  W <-->|"originals, page images"| FS
+  W -->|"model call (semaphore per model)"| MP["model provider"]
+  W -->|"typed result, tokens"| RS[["Redis result stream<br/>one per project"]]
+  ORC -->|"reaper: expired lease → LEASE_EXPIRED"| RS
+  RS -->|"one XREAD for all its engines"| ORC
+```
+
+One job from user action to written result:
+
 ```mermaid
 sequenceDiagram
   participant API as api
   participant DB as PostgreSQL
+  participant ORC as orchestrator process
   participant ENG as engine (project)
   participant R as Redis
   participant W as worker
-  participant OS as object storage
+  participant FS as file store
   participant M as model provider
-  API->>DB: store event (e.g. apply_changes)
-  ENG->>DB: consume event, create jobs, dependencies, stale marks (one transaction)
-  ENG->>R: job message (ids, texts, storage keys)
-  W->>R: take job, heartbeats
-  W->>OS: read page image
+  API->>DB: store user event, NOTIFY (one transaction)
+  DB-->>ORC: notification with the project id
+  ORC->>DB: claim project (advisory lock), start engine if none holds it
+  ENG->>DB: consume event, create jobs and dependencies (one transaction)
+  ENG->>R: push runnable jobs to their lanes (ids, keys, texts)
+  W->>R: take job with lease (model lanes: take a semaphore slot first)
+  W-->>R: heartbeats extend the lease while the task runs
+  W->>FS: read original or page image
   W->>M: model call(s)
-  W->>OS: save new file (if any)
-  W->>R: typed result, token usage
-  ENG->>R: read results
-  ENG->>DB: write results in a batch, job done, event (one transaction)
+  W->>FS: save new files under a name of this attempt
+  W->>R: acknowledge, post result to the project's result stream
+  ORC->>R: read the result streams of all its engines
+  ORC->>ENG: hand over the results
+  ENG->>DB: write results, set done, create follow-ups (one transaction)
+```
+
+A job's status in the database; "running" exists only in Redis:
+
+```mermaid
+stateDiagram-v2
+  [*] --> waiting: created by an event or a result
+  waiting --> queued: dependencies done, targets free, under the project cap
+  queued --> done: result of the current attempt
+  queued --> waiting: lease expired, or first failure (timeout doubled)
+  queued --> failed: second failure
+  failed --> waiting: user input, e.g. start run again
 ```
 
 - Redis holds only messages in transit; PostgreSQL stays the source of truth (jobs, events, results). After a Redis
@@ -358,6 +407,11 @@ MVP starts with engineering offices (D17); HEIC is not listed in V01 and would b
   - Exception to the wrapper rule (section 9): the browser writes the original upload around the file store wrapper.
     Once encryption is built, `ingest_file` rewrites the original through the wrapper (read, encrypt, replace) before
     anything else reads it; until then nothing changes, since the wrappers pass data through.
+- **For now, in the proof of concept** (2026-11-18, T-4): until the object storage product is chosen, uploads go
+  through the api into the local file store; the status stream checks the database once a second instead of
+  waiting for a report from the orchestrator; the TypeScript types are written by hand; no login, every request
+  acts as a development user. The frontend has the two pages above, with the pages of a project shown in place of
+  "Dokumente nach Ablage" until documents are built.
 
 ## 8. Data and storage
 
