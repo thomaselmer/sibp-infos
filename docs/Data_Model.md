@@ -1,6 +1,6 @@
 # paragraph82b — Data Model
 
-Status: **draft** · current version **v35** · 2026-11-18
+Status: **draft** · current version **v36** · 2026-11-18
 
 Final result only: this file shows the current model. How it got here (all versions and changes) is in `Data_Model.html`, published as an artifact: https://claude.ai/artifact/EHPCd6tJNDvKj14RwmwSH6. English names, each mapped to a concept term (see Terms). How the software works (orchestrator, workers, monitoring) is in [`Architecture.md`](Architecture.md).
 
@@ -103,7 +103,7 @@ One job type per unit of work and object. Modelled up to key info extraction; th
 
 Decided (Andreas, 2026-11-17): page turning stays inside ocr_page; duplicate checks are separate job types per level (file, page, document). Decided (Andreas, 2026-11-17): find_sections runs before the type is known: every document first gets a root section over the whole document, then all candidate section types are looked for beneath it; what was found is reported in DOCUMENT_FEATURES, which classify_document and later steps use.
 
-## Entity-relationship diagram (v35)
+## Entity-relationship diagram (v36)
 
 ```mermaid
 erDiagram
@@ -150,6 +150,7 @@ PROJECT ||--o{ JOB : has
 JOB ||--|{ JOB_TARGET : uses
 JOB ||--o{ JOB_DEPENDENCY : waits_for
 JOB ||--o{ JOB_DEPENDENCY : needed_by
+FILE o|--o{ JOB_TARGET : target
 PAGE o|--o{ JOB_TARGET : target
 DOCUMENT o|--o{ JOB_TARGET : target
 DOCUMENT_SECTION o|--o{ JOB_TARGET : target
@@ -362,6 +363,7 @@ JOB_TARGET {
 uuid id PK
 uuid job_id FK
 string access "read or write"
+uuid file_id FK "nullable"
 uuid page_id FK "nullable"
 uuid document_id FK "nullable"
 uuid section_id FK "nullable"
