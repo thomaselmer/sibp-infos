@@ -1,35 +1,14 @@
 # paragraph82b — Data Model
 
-Status: **draft** · current version **v36** · 2026-11-18
+Status: **draft** · current version **v37** · 2026-11-18
 
-Final result only: this file shows the current model. How it got here (all versions and changes) is in `Data_Model.html`, published as an artifact: https://claude.ai/artifact/EHPCd6tJNDvKj14RwmwSH6. English names, each mapped to a concept term (see Terms). How the software works (orchestrator, workers, monitoring) is in [`Architecture.md`](Architecture.md).
+Final result only: this file shows the current model. How it got here (all versions and changes) is in `Data_Model.html`, published as an artifact: https://claude.ai/artifact/EHPCd6tJNDvKj14RwmwSH6. English names, each mapped to a concept term (see `GLOSSARY.md`). How the software works (orchestrator, workers, monitoring) is in [`Architecture.md`](Architecture.md).
 
 Scope (Andreas, 2026-11-17): processing up to key info extraction. Added later, once the steps up to them work: user actions on sections, key infos, requirements, evidence and claims; the steps after key info extraction. Out of scope: tenants. No open model questions remain for this scope.
 
 ## Terms
 
-English model ↔ German concept
-
-Code and model use English names; each maps to one term of the concept (Andreas, 2026-11-16). Terms marked "suggestion" have no settled concept word yet.
-
-| Model (English) | Concept (German) | Note |
-|---|---|---|
-| PROJECT | Betriebsobjekt / Projekt | D03 |
-| USER | Nutzer | D43 |
-| PROJECT_ACCESS | Zugriff | D43 |
-| FILE | Datei (ein Upload) | agreed |
-| PAGE | Seite | D44 |
-| DOCUMENT | Dokument | D44 |
-| DOCUMENT_SECTION | Abschnitt | D04, V06 |
-| REFERENCE_NUMBER | Geschäftszahl | D04, D40; "Zahl", "GZ", "Aktenkennzahl" in the prototype |
-| KEYINFO | Key-Info | D46; here only the verbatim text section |
-| REQUIREMENT | Auflage (Unterauflage when it has a parent) | D47, D42 |
-| REQUIREMENT.point | Auflagenpunkt / Nummer | D04 |
-| EVIDENCE | Bestätigung / Nachweis | D47, V11 |
-| EVIDENCE.kind | erfüllt, teilweise erfüllt, mangelhaft, nicht erfüllt, hinfällig | values stay German |
-| EVIDENCE_CLAIM | Zuordnung | agreed |
-| NOTE | Hinweis | agreed |
-| JOB | Verarbeitungsschritt | agreed |
+Terms and their concept words are in [`GLOSSARY.md`](../GLOSSARY.md) at the repository root.
 
 ## User actions on the job pool
 
