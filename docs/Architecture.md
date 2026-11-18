@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 2 · 2026-11-18 · Task T-3
+Status: **draft** · Version 3 · 2026-11-18 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -163,7 +163,39 @@ tenant). **Open** (A7, A8): technical realisation.
 
 ## 9. Deployment and environments
 
-**Open** (A2). Agents develop and test only locally (AGENTS.md).
+**Decided** (Andreas, 2026-11-18, A2; ADR-paragraph-82b-0005): **containers on rented servers of a European
+provider**, run with Docker Compose, as in the prototype. No US cloud provider holds customer data.
+
+| Environment | Purpose | Who works there |
+|---|---|---|
+| local | development and tests; the only place agents work | developers, agents |
+| dev | live test version | people only |
+| prod | customers | people only |
+
+```mermaid
+flowchart LR
+  U[Browser] --> RP[reverse proxy, TLS]
+  subgraph Server[EU server, Docker Compose]
+    RP --> FE[frontend]
+    RP --> API[api]
+    ORC[orchestrator]
+    WRK[worker × n]
+  end
+  API --> DB[(PostgreSQL + pgvector)]
+  ORC --> DB
+  API --> OS[(object storage, S3-compatible)]
+  WRK --> OS
+  WRK --> LLM[LLM provider]
+```
+
+- Every environment runs the same images; configuration through environment variables only (names, never values,
+  in the repository).
+- Workers scale by running more `worker` containers (by hand in the MVP).
+- Backups of the database and the object storage are our job (no managed service assumed).
+- **Suggestion** (from the prototype, to confirm): Caddy as reverse proxy with automatic TLS; images in the GitHub
+  container registry; build and deploy with GitHub Actions.
+- **Open:** the concrete provider and location (AT/DE); managed or self-run PostgreSQL; backup schedule and
+  retention; whether object storage comes from the same provider (A6).
 
 ## Open decisions
 
@@ -171,7 +203,6 @@ Worked through one at a time, in this order (later ones depend on earlier ones).
 
 | ID | Decision | Depends on |
 |---|---|---|
-| A2 | Hosting and deployment (EU), environments | A1 |
 | A3 | LLM and embedding providers, EU data residency | A2 |
 | A4 | LLM integration layer: LangChain/LangGraph vs own thin layer (D19 asks to check) | A3 |
 | A5 | Orchestrator and worker runtime, job transport, worker inputs | A1 |

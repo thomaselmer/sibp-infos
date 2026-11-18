@@ -61,6 +61,8 @@ This file states the rules for agents completely. Decisions with background are 
 - Modular monolith: one Python codebase, run as the processes `api`, `orchestrator` and `worker`; modules use
   each other only through their public interfaces (ADR-paragraph-82b-0004).
 - Event-driven job pool, not a pipeline; any stage can be reset by invalidating its jobs (ADR-paragraph-82b-0003).
+- Hosting: containers with Docker Compose on servers of a European provider; environments local, dev, prod
+  (ADR-paragraph-82b-0005).
 - Details: `docs/Architecture.md`.
 
 ## Decisions (ADRs)
