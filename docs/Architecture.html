@@ -67,6 +67,7 @@ footer { font-size: 0.85rem; }
     <p class="muted">How the software architecture came about: versions, decisions and reasons, newest first. The current result is <code>docs/Architecture.md</code> in the main repository.</p>
     <nav aria-label="Sections">
       <a href="#open">Open decisions</a>
+      <a href="#v5">v5</a>
       <a href="#v4">v4</a>
       <a href="#v3">v3</a>
       <a href="#v2">v2</a>
@@ -83,8 +84,8 @@ footer { font-size: 0.85rem; }
         <tr><td><code>A2</code></td><td>Hosting and deployment (EU), environments</td><td>A1</td><td>decided v3</td></tr>
         <tr><td><code>A3</code></td><td>LLM and embedding providers, EU data residency</td><td>A2</td><td>decided v4</td></tr>
         <tr><td><code>A4</code></td><td>LLM integration layer: LangChain/LangGraph vs own thin layer (D19)</td><td>A3</td><td>decided v4</td></tr>
-        <tr><td><code>A5</code></td><td>Orchestrator and worker runtime, job transport, worker inputs</td><td>A1</td><td>next</td></tr>
-        <tr><td><code>A6</code></td><td>File and image storage</td><td>A2</td><td>open</td></tr>
+        <tr><td><code>A5</code></td><td>Orchestrator and worker runtime, job transport, worker inputs</td><td>A1</td><td>decided v5</td></tr>
+        <tr><td><code>A6</code></td><td>Object storage details: provider, local setup, key layout, encryption, retention (object storage itself decided in v5)</td><td>A2</td><td>next</td></tr>
         <tr><td><code>A7</code></td><td>Tenant separation and confidentiality measures</td><td>A1</td><td>open</td></tr>
         <tr><td><code>A8</code></td><td>Authentication, roles, feature flags (four dimensions, D06)</td><td>A7</td><td>open</td></tr>
         <tr><td><code>A9</code></td><td>Frontend–backend API and live progress</td><td>A1, A5</td><td>open</td></tr>
@@ -96,8 +97,24 @@ footer { font-size: 0.85rem; }
     </table></div>
   </section>
 
+  <section id="v5">
+    <div class="head"><h2>v5</h2><span class="tag current">current</span><span class="muted">2026-11-18 · A5 processing runtime</span></div>
+    <div class="tablebox"><table>
+      <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td><span class="kind add">decided</span></td><td>Orchestrator processes host one engine per active project (asyncio task); a project is claimed through a PostgreSQL lock; several processes share projects and take over after a crash; idle projects are unloaded; ADR-paragraph-82b-0007 (Proposed)</td><td>Andreas, 2026-11-18. Scales with the number of projects without one container each</td></tr>
+        <tr><td><span class="kind add">decided</span></td><td>Redis as message channel: job stream to workers, result stream back; acknowledgements and heartbeats; unacknowledged jobs of dead workers go back to queued</td><td>Andreas, 2026-11-18. Workers must not touch the database; Redis is simpler to run than a dedicated broker</td></tr>
+        <tr><td><span class="kind add">decided</span></td><td>Large inputs through object storage: job messages carry ids, texts and storage keys; workers read and write files there (e.g. a turned page) and return the key</td><td>Andreas, 2026-11-18. Keeps messages small</td></tr>
+        <tr><td><span class="kind add">new</span></td><td>Sequence diagram of one job from user event to batch write; Redis added to the container and deployment diagrams</td><td>Follows from A5</td></tr>
+        <tr><td><span class="kind add">new</span></td><td>PostgreSQL stays the source of truth; after a Redis loss the engines re-send queued jobs from the database</td><td>Restart rule of the data model (v28)</td></tr>
+        <tr><td><span class="kind chg">changed</span></td><td>A6 narrowed to object storage details: provider, local setup, key layout, encryption, retention</td><td>Object storage itself follows from A5</td></tr>
+        <tr><td><span class="kind del">rejected</span></td><td>One orchestrator process per project; direct HTTP calls to workers; RabbitMQ or NATS; all inputs in the message</td><td>Too many containers; orchestrator would balance workers itself; more to run; messages of several MB</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
   <section id="v4">
-    <div class="head"><h2>v4</h2><span class="tag current">current</span><span class="muted">2026-11-18 · A3 models, A4 AI flows</span></div>
+    <div class="head"><h2>v4</h2><span class="tag">earlier</span><span class="muted">2026-11-18 · A3 models, A4 AI flows</span></div>
     <div class="tablebox"><table>
       <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
       <tbody>

@@ -65,6 +65,8 @@ This file states the rules for agents completely. Decisions with background are 
   (ADR-paragraph-82b-0005).
 - AI: model configurable per job type (start: OpenAI API); flows with LangChain and LangGraph inside the worker
   (ADR-paragraph-82b-0006).
+- Runtime: orchestrator processes host one engine per project; Redis carries jobs and results; workers use object
+  storage, never the database (ADR-paragraph-82b-0007).
 - Details: `docs/Architecture.md`.
 
 ## Decisions (ADRs)

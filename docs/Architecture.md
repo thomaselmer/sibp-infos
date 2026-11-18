@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 4 · 2026-11-18 · Task T-3
+Status: **draft** · Version 5 · 2026-11-18 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -72,7 +72,7 @@ flowchart LR
   end
   API --> DB[(PostgreSQL<br/>pgvector)]
   ORC --> DB
-  ORC -. jobs and results .- WRK
+  ORC <-- jobs and results via Redis --> WRK
   WRK --> LLM[LLM and embedding provider]
 ```
 
@@ -137,8 +137,45 @@ Decided so far (data model, section "Architecture, not ER model", and versions v
 - **User changes** are collected and processed on "Apply changes", like "Start run" (Andreas, 2026-11-17).
 - **Job types** up to key info extraction: see `Data_Model.md`, "Job types".
 
-**Open** (A5): how orchestrators and workers run and talk to each other (process model, transport, how inputs reach
-a worker that does not touch the database).
+### Runtime (A5)
+
+**Decided** (Andreas, 2026-11-18, A5; ADR-paragraph-82b-0007):
+
+- **Many projects per orchestrator process.** An `orchestrator` process hosts one engine per active project (an
+  asyncio task). A project is claimed exclusively through a PostgreSQL lock, so several orchestrator processes can
+  share the projects and one takes over after another crashed. Idle projects are unloaded.
+- **Redis as message channel.** The engine puts runnable jobs with their inputs into a Redis job stream; workers take
+  them, send heartbeats and post typed results to a result stream that the engines read. A job taken but not
+  acknowledged by a dead worker is detected and goes back to queued (restart rule above).
+- **Large inputs through object storage.** A job message holds ids, texts and object-storage keys. The worker reads
+  images straight from object storage and saves new files there (e.g. a turned page), returning the key in its
+  result. Workers never touch the database.
+
+```mermaid
+sequenceDiagram
+  participant API as api
+  participant DB as PostgreSQL
+  participant ENG as engine (project)
+  participant R as Redis
+  participant W as worker
+  participant OS as object storage
+  participant M as model provider
+  API->>DB: store event (e.g. apply_changes)
+  ENG->>DB: consume event, create jobs, dependencies, stale marks (one transaction)
+  ENG->>R: job message (ids, texts, storage keys)
+  W->>R: take job, heartbeats
+  W->>OS: read page image
+  W->>M: model call(s)
+  W->>OS: save new file (if any)
+  W->>R: typed result, token usage
+  ENG->>R: read results
+  ENG->>DB: write results in a batch, job done, event (one transaction)
+```
+
+- Redis holds only messages in transit; PostgreSQL stays the source of truth (jobs, events, results). After a Redis
+  loss the engine re-sends queued jobs from the database.
+- **Suggestion** (from A1, still to confirm): job types live with the module that owns their data and register with
+  the processing engine.
 
 ## 6. AI models and flows
 
@@ -175,7 +212,8 @@ Consequences and guidelines:
 
 - PostgreSQL with pgvector (Andreas, 2026-11-17, same stack as the prototype); embeddings per page and per key info
   (data model v15, v16).
-- **Open** (A6): where files and page images are stored.
+- Files and page images live in S3-compatible object storage; workers read and write there directly (A5).
+  **Open** (A6): provider, local setup, key layout, encryption, retention.
 - **Open** (A7): how tenants are separated.
 
 ## 8. Security and confidentiality
@@ -211,9 +249,12 @@ flowchart LR
     RP --> API[api]
     ORC[orchestrator]
     WRK[worker × n]
+    RD[(Redis)]
   end
   API --> DB[(PostgreSQL + pgvector)]
   ORC --> DB
+  ORC <--> RD
+  WRK <--> RD
   API --> OS[(object storage, S3-compatible)]
   WRK --> OS
   WRK --> LLM[LLM provider]
@@ -234,12 +275,11 @@ Worked through one at a time, in this order (later ones depend on earlier ones).
 
 | ID | Decision | Depends on |
 |---|---|---|
-| A5 | Orchestrator and worker runtime, job transport, worker inputs | A1 |
-| A6 | File and image storage | A2 |
+| A6 | Object storage details: provider, local setup, key layout, encryption, retention | A2 |
 | A7 | Tenant separation and confidentiality measures | A1 |
 | A8 | Authentication, roles, feature flags (four dimensions, D06) | A7 |
-| A9 | Frontend–backend API and live progress | A1, A5 |
+| A9 | Frontend–backend API and live progress | A1 |
 | A10 | Report and checklist generation (PDF, branding) | A1 |
 | A11 | Rulebooks (Pfade) as configuration | A1 |
 | A12 | Observability stack | A2 |
-| A13 | Testing and measuring processing quality without labelled data (A07) | A5 |
+| A13 | Testing and measuring processing quality without labelled data (A07) | — |
