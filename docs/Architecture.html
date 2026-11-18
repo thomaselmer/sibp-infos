@@ -67,6 +67,7 @@ footer { font-size: 0.85rem; }
     <p class="muted">How the software architecture came about: versions, decisions and reasons, newest first. The current result is <code>docs/Architecture.md</code> in the main repository.</p>
     <nav aria-label="Sections">
       <a href="#open">Open decisions</a>
+      <a href="#v13">v13</a>
       <a href="#v12">v12</a>
       <a href="#v11">v11</a>
       <a href="#v10">v10</a>
@@ -95,17 +96,29 @@ footer { font-size: 0.85rem; }
         <tr><td><code>A6</code></td><td>Object storage details: provider, local setup, key layout, encryption, retention (object storage itself decided in v5)</td><td>A2</td><td>decided v8 (key layout and retention still open)</td></tr>
         <tr><td><code>A7</code></td><td>Tenant separation and confidentiality measures</td><td>A1</td><td>decided v10</td></tr>
         <tr><td><code>A8</code></td><td>Authentication, roles, feature flags (four dimensions, D06)</td><td>A7</td><td>deferred v11</td></tr>
-        <tr><td><code>A9</code></td><td>Frontend–backend API and live progress</td><td>A1, A5</td><td>decided v12 (upload path A9c open)</td></tr>
+        <tr><td><code>A9</code></td><td>Frontend–backend API and live progress</td><td>A1, A5</td><td>decided v12, upload path v13</td></tr>
         <tr><td><code>A10</code></td><td>Report and checklist generation (PDF, branding)</td><td>A1</td><td>deferred v11</td></tr>
         <tr><td><code>A11</code></td><td>Rulebooks (Pfade) as configuration</td><td>A1</td><td>deferred v11</td></tr>
         <tr><td><code>A12</code></td><td>Observability stack</td><td>A2</td><td>open</td></tr>
-        <tr><td><code>A13</code></td><td>Testing and measuring processing quality without labelled data (A07)</td><td>A4, A5</td><td>open</td></tr>
+        <tr><td><code>A13</code></td><td>Testing and measuring processing quality without labelled data (A07)</td><td>A4, A5</td><td>next</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="v13">
+    <div class="head"><h2>v13</h2><span class="tag current">current</span><span class="muted">2026-11-18 · A9c upload path</span></div>
+    <div class="tablebox"><table>
+      <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td><span class="kind add">decided</span></td><td>Uploads straight to MinIO: the api checks access, formats and page quota and hands out short-lived signed upload URLs (multipart for large files); the browser uploads with progress per file; on confirmation the api registers FILE, counts pages and sets "bereit zur Verarbeitung"; unsupported files are rejected with one collected notice (V01) and deleted</td><td>Andreas, 2026-11-18, left the choice to the recommendation. Large uploads never block the api</td></tr>
+        <tr><td><span class="kind add">new</span></td><td>Exception to the wrapper rule: the browser writes the original around the file store wrapper; once encryption exists, <code>ingest_file</code> rewrites the original through the wrapper before anything else reads it</td><td>Keeps the later encryption possible with direct uploads</td></tr>
+        <tr><td><span class="kind del">rejected</span></td><td>Uploads through the api</td><td>Large uploads would tie up the api</td></tr>
       </tbody>
     </table></div>
   </section>
 
   <section id="v12">
-    <div class="head"><h2>v12</h2><span class="tag current">current</span><span class="muted">2026-11-18 · A9 frontend and API</span></div>
+    <div class="head"><h2>v12</h2><span class="tag">earlier</span><span class="muted">2026-11-18 · A9 frontend and API</span></div>
     <div class="tablebox"><table>
       <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
       <tbody>

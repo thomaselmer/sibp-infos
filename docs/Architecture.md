@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 12 · 2026-11-18 · Task T-3
+Status: **draft** · Version 13 · 2026-11-18 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -295,7 +295,17 @@ MVP starts with engineering offices (D17); HEIC is not listed in V01 and would b
 - **Live progress with Server-Sent Events.** The browser opens one event stream per open project; the api pushes
   progress (e.g. pages read, documents built, key infos found, from the JOB table) whenever the orchestrator reports
   a change through Redis. One direction is enough for progress.
-- **Open** (A9c): upload path — straight to MinIO with short-lived signed upload URLs, or through the api.
+- **Uploads straight to MinIO** (A9c; Andreas, 2026-11-18, left the choice to the recommendation):
+  1. the frontend asks the api for upload slots (file names, sizes, types); the api checks access, allowed formats
+     and the page quota and returns short-lived signed upload URLs (multipart for large files);
+  2. the browser uploads straight to MinIO under `projects/<project>/files/…`, showing progress per file;
+  3. the frontend confirms the upload; the api registers FILE (type, size, content hash, upload position), counts the
+     pages (a photo one page, a PDF its pages) and sets the status "bereit zur Verarbeitung". Unsupported or
+     unreadable files are rejected with one collected notice per upload (V01) and deleted from MinIO.
+  - The api is never blocked by large files.
+  - Exception to the wrapper rule (section 9): the browser writes the original upload around the file store wrapper.
+    Once encryption is built, `ingest_file` rewrites the original through the wrapper (read, encrypt, replace) before
+    anything else reads it; until then nothing changes, since the wrappers pass data through.
 
 ## 8. Data and storage
 
@@ -408,7 +418,6 @@ Worked through one at a time. Needed for the processing unit first; the rest wai
 
 | ID | Decision | Depends on | When |
 |---|---|---|---|
-| A9c | Upload path: straight to MinIO with signed URLs, or through the api | A1 | now |
 | A13 | Testing and measuring processing quality without labelled data (A07) | — | now |
 | A12 | Observability stack | A2 | now (minimal) |
 | A8 | Authentication, roles, feature flags (four dimensions, D06); Entra ID matters, a self-hosted broker such as Keycloak or Zitadel was discussed | A7 | after the processing unit |
