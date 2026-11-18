@@ -14,6 +14,7 @@ confidential (D06): business secrets and open defects. The prototype ran on Dock
 - No US cloud provider holds customer data.
 - Environments: local (development; the only place agents work), dev (live test version), prod (customers).
 - All environments run the same images; configuration only through environment variables.
+- Files are stored in self-run MinIO in every environment (Andreas, 2026-11-18).
 
 ## Alternatives considered
 - Managed services in an EU region of a US cloud provider: less operations work and autoscaling, but higher cost and

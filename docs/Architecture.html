@@ -67,6 +67,7 @@ footer { font-size: 0.85rem; }
     <p class="muted">How the software architecture came about: versions, decisions and reasons, newest first. The current result is <code>docs/Architecture.md</code> in the main repository.</p>
     <nav aria-label="Sections">
       <a href="#open">Open decisions</a>
+      <a href="#v8">v8</a>
       <a href="#v7">v7</a>
       <a href="#v6">v6</a>
       <a href="#v5">v5</a>
@@ -87,7 +88,7 @@ footer { font-size: 0.85rem; }
         <tr><td><code>A3</code></td><td>LLM and embedding providers, EU data residency</td><td>A2</td><td>decided v4</td></tr>
         <tr><td><code>A4</code></td><td>LLM integration layer: LangChain/LangGraph vs own thin layer (D19)</td><td>A3</td><td>decided v4</td></tr>
         <tr><td><code>A5</code></td><td>Orchestrator and worker runtime, job transport, worker inputs</td><td>A1</td><td>decided v5</td></tr>
-        <tr><td><code>A6</code></td><td>Object storage details: provider, local setup, key layout, encryption, retention (object storage itself decided in v5)</td><td>A2</td><td>next</td></tr>
+        <tr><td><code>A6</code></td><td>Object storage details: provider, local setup, key layout, encryption, retention (object storage itself decided in v5)</td><td>A2</td><td>decided v8 (key layout and retention still open)</td></tr>
         <tr><td><code>A7</code></td><td>Tenant separation and confidentiality measures</td><td>A1</td><td>open</td></tr>
         <tr><td><code>A8</code></td><td>Authentication, roles, feature flags (four dimensions, D06)</td><td>A7</td><td>open</td></tr>
         <tr><td><code>A9</code></td><td>Frontend–backend API and live progress</td><td>A1, A5</td><td>open</td></tr>
@@ -99,8 +100,23 @@ footer { font-size: 0.85rem; }
     </table></div>
   </section>
 
+  <section id="v8">
+    <div class="head"><h2>v8</h2><span class="tag current">current</span><span class="muted">2026-11-18 · A6 storage, encryption seam</span></div>
+    <div class="tablebox"><table>
+      <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td><span class="kind add">decided</span></td><td>MinIO in every environment, self-run in Docker Compose; code speaks only the S3 API; replication and backups of files are our job (added to ADR-paragraph-82b-0005)</td><td>Andreas, 2026-11-18</td></tr>
+        <tr><td><span class="kind add">decided</span></td><td>Plain text during development behind empty wrappers: file store, field cipher, key provider; today they pass data through, later they encrypt with per-tenant keys; no code touches content around them; every call carries the tenant</td><td>Andreas, 2026-11-18. Encryption becomes a later change in one place</td></tr>
+        <tr><td><span class="kind add">new</span></td><td>Explained the encryption layers (transport, disk, backups, service, application per tenant, end-to-end not possible) and how each kind of access is realised</td><td>Andreas asked how encryption differs from database users and what is done in practice</td></tr>
+        <tr><td><span class="kind chg">suggestion</span></td><td>Key layout tenants/&lt;tenant&gt;/projects/&lt;project&gt;/…; TLS everywhere, LUKS on servers, encrypted backups; Row Level Security as second net; credentials per process; short-lived signed URLs; time-limited support grants with access log</td><td>Presented 2026-11-18, not yet decided</td></tr>
+        <tr><td><span class="kind chg">open</span></td><td>Which columns get the field cipher (with the data model); retention of files after deleting a project</td><td>Not decided yet</td></tr>
+        <tr><td><span class="kind del">rejected</span></td><td>Provider S3 in dev/prod with MinIO only locally</td><td>Andreas chose MinIO everywhere</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
   <section id="v7">
-    <div class="head"><h2>v7</h2><span class="tag current">current</span><span class="muted">2026-11-18 · lanes with sorted queues</span></div>
+    <div class="head"><h2>v7</h2><span class="tag">earlier</span><span class="muted">2026-11-18 · lanes with sorted queues</span></div>
     <div class="tablebox"><table>
       <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
       <tbody>

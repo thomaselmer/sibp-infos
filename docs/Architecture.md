@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 7 · 2026-11-18 · Task T-3
+Status: **draft** · Version 8 · 2026-11-18 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -250,14 +250,50 @@ Consequences and guidelines:
 - PostgreSQL with pgvector (Andreas, 2026-11-17, same stack as the prototype); embeddings per page and per key info
   (data model v15, v16).
 - Files and page images live in S3-compatible object storage; workers read and write there directly (A5).
-  **Open** (A6): provider, local setup, key layout, encryption, retention.
+- **MinIO in every environment** (Andreas, 2026-11-18, A6), self-run in Docker Compose; code speaks only the S3 API.
+  Replication and backups of the files are our job.
+- **Suggestion** (to confirm): key layout `tenants/<tenant>/projects/<project>/files/…`, `…/pages/…`; deleting a
+  project deletes its prefix; MinIO policies can be set per prefix; per-tenant keys can come later without moving
+  files.
+- **Open:** retention of files after a project is deleted; backup schedule (with A2).
 - **Open** (A7): how tenants are separated.
 
 ## 8. Security and confidentiality
 
 Principles from D06 (platform admins see no customer content, time-limited support access with customer consent,
 every access logged and visible to the customer, real loss of access after revocation, later encryption per
-tenant). **Open** (A7, A8): technical realisation.
+tenant).
+
+### Encryption seam
+
+**Decided** (Andreas, 2026-11-18): **plain text during development, behind empty wrappers.** All content passes
+through wrappers that will handle encryption later; today they pass data through unchanged.
+
+| Wrapper | Wraps | Today | Later (per-tenant keys) |
+|---|---|---|---|
+| file store | every read and write of files and page images (api and workers) | passes bytes through | encrypts and decrypts with the tenant's data key |
+| field cipher | content columns marked as confidential in the data model | passes values through | encrypts and decrypts those columns |
+| key provider | data keys per tenant | returns no key | gets the tenant's data key from a key service (envelope encryption) |
+
+- No code reads or writes content around the wrappers; this keeps encryption a later change in one place.
+- Every call carries the tenant (and project), so a later implementation knows which key to use.
+- Limits for later: encrypted columns cannot be searched in PostgreSQL; embeddings stay unencrypted for vector
+  search; workers need the keys; the model provider always sees plain text. Which columns get the field cipher is
+  decided with the data model.
+
+### Access and infrastructure
+
+**Suggestion** (presented 2026-11-18, not yet decided):
+- TLS for every connection (browser, PostgreSQL, MinIO, model provider); disk encryption (LUKS) on dev and prod
+  servers; backups encrypted with a key kept apart from the servers.
+- Users: permission check in the app (tenant type × plan × role × project access, D06, A8); PostgreSQL Row Level
+  Security as a second net per tenant (the app sets the tenant per transaction).
+- Own database and MinIO credentials per process with least rights (api, orchestrator; workers no database).
+- Files in the browser only through short-lived signed URLs; revoking project access works at once in the app.
+- Support access only with a stored, time-limited grant by the tenant admin; every content access logged and
+  visible to the customer.
+
+**Open** (A7, A8): tenant separation, authentication and roles in detail.
 
 ## 9. Observability
 
@@ -292,7 +328,7 @@ flowchart LR
   ORC --> DB
   ORC <--> RD
   WRK <--> RD
-  API --> OS[(object storage, S3-compatible)]
+  API --> OS[(MinIO, S3 API)]
   WRK --> OS
   WRK --> LLM[LLM provider]
 ```
@@ -312,7 +348,6 @@ Worked through one at a time, in this order (later ones depend on earlier ones).
 
 | ID | Decision | Depends on |
 |---|---|---|
-| A6 | Object storage details: provider, local setup, key layout, encryption, retention | A2 |
 | A7 | Tenant separation and confidentiality measures | A1 |
 | A8 | Authentication, roles, feature flags (four dimensions, D06) | A7 |
 | A9 | Frontend–backend API and live progress | A1 |
