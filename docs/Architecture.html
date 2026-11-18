@@ -67,6 +67,7 @@ footer { font-size: 0.85rem; }
     <p class="muted">How the software architecture came about: versions, decisions and reasons, newest first. The current result is <code>docs/Architecture.md</code> in the main repository.</p>
     <nav aria-label="Sections">
       <a href="#open">Open decisions</a>
+      <a href="#v2">v2</a>
       <a href="#v1">v1</a>
     </nav>
   </header>
@@ -76,8 +77,8 @@ footer { font-size: 0.85rem; }
     <div class="tablebox"><table>
       <thead><tr><th>ID</th><th>Decision</th><th>Depends on</th><th>State</th></tr></thead>
       <tbody>
-        <tr><td><code>A1</code></td><td>System shape: modular monolith vs services; containers; module boundaries</td><td>–</td><td>next</td></tr>
-        <tr><td><code>A2</code></td><td>Hosting and deployment (EU), environments</td><td>A1</td><td>open</td></tr>
+        <tr><td><code>A1</code></td><td>System shape: modular monolith vs services; containers; module boundaries</td><td>–</td><td>decided v2</td></tr>
+        <tr><td><code>A2</code></td><td>Hosting and deployment (EU), environments</td><td>A1</td><td>next</td></tr>
         <tr><td><code>A3</code></td><td>LLM and embedding providers, EU data residency</td><td>A2</td><td>open</td></tr>
         <tr><td><code>A4</code></td><td>LLM integration layer: LangChain/LangGraph vs own thin layer (D19)</td><td>A3</td><td>open</td></tr>
         <tr><td><code>A5</code></td><td>Orchestrator and worker runtime, job transport, worker inputs</td><td>A1</td><td>open</td></tr>
@@ -93,8 +94,21 @@ footer { font-size: 0.85rem; }
     </table></div>
   </section>
 
+  <section id="v2">
+    <div class="head"><h2>v2</h2><span class="tag current">current</span><span class="muted">2026-11-18 · A1 system shape</span></div>
+    <div class="tablebox"><table>
+      <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td><span class="kind add">decided</span></td><td>Modular monolith: one Python codebase (FastAPI), three processes from the same code (<code>api</code>, <code>orchestrator</code>, <code>worker</code>), Next.js frontend separate, one PostgreSQL database; ADR-paragraph-82b-0004 (Proposed)</td><td>Andreas, 2026-11-18. The one-transaction rule of the engine needs one database and one codebase; small team, one deploy; LLM load still scales on its own through the workers</td></tr>
+        <tr><td><span class="kind add">new</span></td><td>Module list: identity, projects, akt, processing, knowledge, notes, inspection, measures, reports, rulebooks, backoffice, integration (prepared), billing (prepared); modules talk only through public interfaces, checked by import rules in CI</td><td>Cut along the concept's areas (D03–D49, D14, D17)</td></tr>
+        <tr><td><span class="kind chg">suggestion</span></td><td>Job types live with the module that owns their data and register with the processing engine</td><td>To be confirmed in A5</td></tr>
+        <tr><td><span class="kind del">rejected</span></td><td>Services per domain; simple monolith with background tasks in the API</td><td>Services break the one-transaction rule and cost too much to operate; background tasks slow the API on large Akten and cannot scale the LLM load</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
   <section id="v1">
-    <div class="head"><h2>v1</h2><span class="tag current">current</span><span class="muted">2026-11-18 · first draft</span></div>
+    <div class="head"><h2>v1</h2><span class="tag">earlier</span><span class="muted">2026-11-18 · first draft</span></div>
     <div class="tablebox"><table>
       <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
       <tbody>
