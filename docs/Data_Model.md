@@ -1,6 +1,6 @@
 # paragraph82b — Data Model
 
-Status: **draft** · current version **v33** · 2026-11-18
+Status: **draft** · current version **v34** · 2026-11-18
 
 Final result only: this file shows the current model. How it got here (all versions and changes) is in `Data_Model.html`, published as an artifact: https://claude.ai/artifact/EHPCd6tJNDvKj14RwmwSH6. English names, each mapped to a concept term (see Terms). How the software works (orchestrator, workers, monitoring) is in [`Architecture.md`](Architecture.md).
 
@@ -103,7 +103,7 @@ One job type per unit of work and object. Modelled up to key info extraction; th
 
 Decided (Andreas, 2026-11-17): page turning stays inside ocr_page; duplicate checks are separate job types per level (file, page, document). Decided (Andreas, 2026-11-17): find_sections runs before the type is known: every document first gets a root section over the whole document, then all candidate section types are looked for beneath it; what was found is reported in DOCUMENT_FEATURES, which classify_document and later steps use.
 
-## Entity-relationship diagram (v33)
+## Entity-relationship diagram (v34)
 
 ```mermaid
 erDiagram
@@ -374,6 +374,7 @@ uuid id PK
 uuid project_id FK
 string job_type "task to run; preconditions per type in code"
 string status "waiting, queued, running, done, failed"
+int priority "0 fast lane (Apply changes), 1 normal"
 int attempts
 int timeout_seconds "raised on retry"
 string worker_id "nullable"
