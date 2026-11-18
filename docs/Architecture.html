@@ -67,6 +67,7 @@ footer { font-size: 0.85rem; }
     <p class="muted">How the software architecture came about: versions, decisions and reasons, newest first. The current result is <code>docs/Architecture.md</code> in the main repository.</p>
     <nav aria-label="Sections">
       <a href="#open">Open decisions</a>
+      <a href="#v14">v14</a>
       <a href="#v13">v13</a>
       <a href="#v12">v12</a>
       <a href="#v11">v11</a>
@@ -99,14 +100,31 @@ footer { font-size: 0.85rem; }
         <tr><td><code>A9</code></td><td>Frontend–backend API and live progress</td><td>A1, A5</td><td>decided v12, upload path v13</td></tr>
         <tr><td><code>A10</code></td><td>Report and checklist generation (PDF, branding)</td><td>A1</td><td>deferred v11</td></tr>
         <tr><td><code>A11</code></td><td>Rulebooks (Pfade) as configuration</td><td>A1</td><td>deferred v11</td></tr>
-        <tr><td><code>A12</code></td><td>Observability stack</td><td>A2</td><td>open</td></tr>
-        <tr><td><code>A13</code></td><td>Testing and measuring processing quality without labelled data (A07)</td><td>A4, A5</td><td>next</td></tr>
+        <tr><td><code>A12</code></td><td>Observability stack</td><td>A2</td><td>next</td></tr>
+        <tr><td><code>A13</code></td><td>Testing and measuring processing quality without labelled data (A07)</td><td>A4, A5</td><td>decided v14</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="v14">
+    <div class="head"><h2>v14</h2><span class="tag current">current</span><span class="muted">2026-11-18 · A13 testing and quality</span></div>
+    <div class="tablebox"><table>
+      <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td><span class="kind add">decided</span></td><td>One golden dataset from a single representative project: documents and classification complete, key infos representative</td><td>Andreas, 2026-11-18: being prepared</td></tr>
+        <tr><td><span class="kind add">decided</span></td><td>Golden dataset on a shared Alpsoft drive (subdirectory of the mount), path from an environment variable; never in Git</td><td>Andreas, 2026-11-18 (his proposal). Keeps the confidential-data rule and A2 intact; storing it in the main repository on GitHub would have broken both</td></tr>
+        <tr><td><span class="kind add">decided</span></td><td>Each stage measured with the golden inputs of the stage before: borders and documents, document type (complete), key info recall on the marked ones (extra ones go to review); plus cost and time per page per job type and model</td><td>Errors are seen where they arise; the prototype's later checks suffered from earlier errors</td></tr>
+        <tr><td><span class="kind add">decided</span></td><td>Error → test → fix: errors go into an error catalogue (no content, case ids only); a test reproducing the error comes first; code errors as unit tests with made-up text in the repository, model errors as live eval cases run several times, locally on the golden dataset</td><td>Andreas, 2026-11-18: "creating tests which produce these errors and then start developing solutions until these tests pass"</td></tr>
+        <tr><td><span class="kind add">new</span></td><td>Test levels: job tests, engine tests with fake workers, integration in Docker Compose, quality runs and eval cases</td><td>Follows from the job pool</td></tr>
+        <tr><td><span class="kind chg">suggestion</span></td><td>Automated tests replay recorded model answers; live calls only in eval cases and quality runs</td><td>Not yet confirmed</td></tr>
+        <tr><td><span class="kind chg">open</span></td><td>Where the shared drive is hosted (if a Microsoft cloud service, same question as GitHub under A2); the dataset's file format</td><td>Needed for the loader and for A2</td></tr>
+        <tr><td><span class="kind del">rejected</span></td><td>Golden dataset in the main repository (as is, or with an exception); anonymising first</td><td>Breaks the confidential-data rule and A2; replaced by the shared drive</td></tr>
       </tbody>
     </table></div>
   </section>
 
   <section id="v13">
-    <div class="head"><h2>v13</h2><span class="tag current">current</span><span class="muted">2026-11-18 · A9c upload path</span></div>
+    <div class="head"><h2>v13</h2><span class="tag">earlier</span><span class="muted">2026-11-18 · A9c upload path</span></div>
     <div class="tablebox"><table>
       <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
       <tbody>

@@ -69,6 +69,8 @@ This file states the rules for agents completely. Decisions with background are 
   storage, never the database (ADR-paragraph-82b-0007).
 - Tenants: shared schema, the project is the unit of separation (Row Level Security on project access)
   (ADR-paragraph-82b-0008).
+- Testing: the golden dataset lives on a shared Alpsoft drive (path from an environment variable), never in Git;
+  every error found becomes a test first, then a fix (`docs/Architecture.md`, section 11).
 - Details: `docs/Architecture.md`.
 
 ## Decisions (ADRs)

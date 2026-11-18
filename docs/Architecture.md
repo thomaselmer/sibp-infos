@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 13 · 2026-11-18 · Task T-3
+Status: **draft** · Version 14 · 2026-11-18 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -373,7 +373,56 @@ through wrappers that will handle encryption later; today they pass data through
 - Monitoring holds only ids, counts and durations, no customer content (D06).
 - **Open** (A12): concrete stack (the data model names Grafana as an example).
 
-## 11. Deployment and environments
+## 11. Testing and quality
+
+**Decided** (Andreas, 2026-11-18, A13):
+
+### Golden dataset
+- One golden dataset from a single representative project: **documents and their classification are complete;
+  key infos are representative** (a sample, not all of them).
+- **Stored outside Git**, on a shared Alpsoft drive (a subdirectory of the mount); found through an environment
+  variable with its path. Neither the main repository nor the source submodule holds real data (AGENTS.md rule 6,
+  ADR-paragraph-82b-0005). **Open:** where the drive is hosted; if it is a Microsoft cloud service, the same question
+  as for GitHub applies (A2). **Open:** the dataset's file format (needed for the loader).
+
+### What is measured, stage by stage
+
+| Stage | In the golden dataset | Measured |
+|---|---|---|
+| pages → documents (borders, V04) | complete | borders right, documents matched exactly, too many joined or split |
+| document type (V07) | complete | right per type, confusions (e.g. Bescheid taken for Verhandlungsschrift) |
+| key infos (V08, V09) | representative | recall on the marked key infos; key infos found beyond them go to a list for review, not counted as wrong |
+
+- **Each stage is measured with the golden inputs of the stage before** (e.g. document type on the golden documents,
+  not on our own grouping), so an error is seen where it arises, not only where it shows. The job pool makes this
+  easy: every job gets its inputs and returns a result.
+- Each quality run also reports cost and time per page, per job type and model (basis for switching models, A3).
+
+### From error to test to fix
+1. A quality run finds an error.
+2. It goes into the **error catalogue** (`docs/Error_Catalogue.md`, to be created): error class, stage, case id in the
+   golden dataset, cause; no document content.
+3. A test that produces the error is written first (red); the fix is developed until it passes without breaking
+   other tests; the test stays as a regression test.
+
+| Kind of error | Example | Test |
+|---|---|---|
+| in code, deterministic | border rules, contradicting page numbers, matching by Geschäftszahl | unit test on the features of the pages concerned; runs always; in the repository with made-up text showing the same pattern |
+| in the model (prompt, model choice) | requirement missed, wrong document type | eval case run live against the model several times (answers vary), passing when e.g. 3 of 3 runs are right; uses the golden dataset, runs locally only |
+
+### Test levels
+
+| Level | What | Data |
+|---|---|---|
+| job tests | each job as a pure function: input in, result out | made-up example pages |
+| engine tests | preconditions, invalidation, restart, lanes, cap per project, with fake workers | no model |
+| integration | whole flow with PostgreSQL, Redis and MinIO in Docker Compose | made-up mini Akt |
+| quality runs and eval cases | stage metrics and error cases | golden dataset, local only |
+
+- **Suggestion** (not yet confirmed): automated tests replay recorded model answers (on made-up data); live model
+  calls only in eval cases and quality runs.
+
+## 12. Deployment and environments
 
 **Decided** (Andreas, 2026-11-18, A2; ADR-paragraph-82b-0005): **containers on rented servers of a European
 provider**, run with Docker Compose, as in the prototype. No US cloud provider holds customer data.
@@ -418,7 +467,6 @@ Worked through one at a time. Needed for the processing unit first; the rest wai
 
 | ID | Decision | Depends on | When |
 |---|---|---|---|
-| A13 | Testing and measuring processing quality without labelled data (A07) | — | now |
 | A12 | Observability stack | A2 | now (minimal) |
 | A8 | Authentication, roles, feature flags (four dimensions, D06); Entra ID matters, a self-hosted broker such as Keycloak or Zitadel was discussed | A7 | after the processing unit |
 | A10 | Report and checklist generation (PDF, branding) | A1 | after the processing unit |
