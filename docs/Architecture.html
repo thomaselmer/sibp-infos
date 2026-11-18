@@ -67,6 +67,7 @@ footer { font-size: 0.85rem; }
     <p class="muted">How the software architecture came about: versions, decisions and reasons, newest first. The current result is <code>docs/Architecture.md</code> in the main repository.</p>
     <nav aria-label="Sections">
       <a href="#open">Open decisions</a>
+      <a href="#v18">v18</a>
       <a href="#v17">v17</a>
       <a href="#v16">v16</a>
       <a href="#v15">v15</a>
@@ -109,8 +110,20 @@ footer { font-size: 0.85rem; }
     </table></div>
   </section>
 
+  <section id="v18">
+    <div class="head"><h2>v18</h2><span class="tag current">current</span><span class="muted">2026-11-18 · golden dataset layout</span></div>
+    <div class="tablebox"><table>
+      <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td><span class="kind add">decided</span></td><td>Golden dataset layout: inputs as uploaded (PDFs with several pages or one-page images); group folder = document type, subfolder = one document, so grouping and classification are labelled by the folders; key infos in YAML files per document, each with a type</td><td>Andreas, 2026-11-18. The dataset is still being completed on the shared drive</td></tr>
+        <tr><td><span class="kind add">decided</span></td><td>Parts are usable already for OCR, grouping and classification (Bescheide, Verhandlungsschriften, other authority documents, emails); unsorted folders and earlier prototype output are not part of it</td><td>Andreas, 2026-11-18</td></tr>
+        <tr><td><span class="kind chg">open</span></td><td>Suggestion: environment variable <code>P82B_GOLDEN_DATASET_DIR</code>; label file format and loader when the dataset is ready</td><td>Waits for Andreas</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
   <section id="v17">
-    <div class="head"><h2>v17</h2><span class="tag current">current</span><span class="muted">2026-11-18 · recorded model answers, data model v33</span></div>
+    <div class="head"><h2>v17</h2><span class="tag">earlier</span><span class="muted">2026-11-18 · recorded model answers, data model v33</span></div>
     <div class="tablebox"><table>
       <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
       <tbody>

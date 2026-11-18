@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 17 · 2026-11-18 · Task T-3
+Status: **draft** · Version 18 · 2026-11-18 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -392,8 +392,16 @@ through wrappers that will handle encryption later; today they pass data through
 - **Stored outside Git**, on a shared Alpsoft drive (a subdirectory of the mount); found through an environment
   variable with its path. Neither the main repository nor the source submodule holds real data (AGENTS.md rule 6,
   ADR-paragraph-82b-0005). The drive is fine for this data (Andreas, 2026-11-18).
-- Layout (Andreas, 2026-11-18): a folder with the files already grouped, plus text files with labels and decisions.
-  The exact format follows when the dataset is ready; the loader is built then.
+- Layout (Andreas, 2026-11-18; dataset still being completed):
+  - Inputs as they would be uploaded: PDFs (several pages) or images (one page each), as in the data model.
+  - **Group folder = document type** (e.g. Bescheide, Verhandlungsschriften, other authority documents, emails);
+    **subfolder = one document**. Grouping and classification are therefore labelled by the folder structure.
+  - **Key infos** are labelled in YAML files per document (e.g. requirements of a Bescheid), each with a type.
+  - Folders not yet sorted, and output of earlier prototype runs, are not part of the golden dataset.
+  - Parts are usable already for OCR, grouping and classification (Bescheide, Verhandlungsschriften, other authority
+    documents, emails); key infos follow.
+  - The exact format of the label files follows when the dataset is ready; the loader is built then.
+  - **Suggestion** (to confirm): environment variable `P82B_GOLDEN_DATASET_DIR` with the path.
 
 ### What is measured, stage by stage
 
