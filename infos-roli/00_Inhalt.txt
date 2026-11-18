@@ -1,0 +1,36 @@
+paragraph82b – Schlussfassung aller Unterlagen
+Stand: 17. Oktober 2026
+Eine Koproduktion von Alpsoft GmbH (Softwareentwicklung) und SiBP fire & safety network GmbH (Fachentwicklung und fachliche Begleitung)
+
+01_Konzept
+  paragraph82b_Konzept_Zusammenfassung.pdf – Produkt, Pakete und Preise, Kosten, Funktionen, Marke, offene Punkte
+
+02_Praesentationen (PDF-Fassung; Originale mit Symbolen und als PowerPoint in den Präsentations-Artefakten)
+  01_Intern_Preismodell       – interne Besprechung Preismodell (20 Folien)
+  02_Kundenpraesentation      – gemeinsame Kundenpräsentation (17 Folien)
+  03_Mein_Betrieb             – für Einzelbetriebe (14 Folien)
+  04_Mein_Buero               – für Ingenieurbüros und Baumeister (15 Folien)
+  05_Meine_Behoerde           – für Gemeinden und Behörden (13 Folien)
+  06_Empfehlungsprogramm      – Vermittlung Betrieb/Büro (9 Folien)
+
+03_Website
+  paragraph82b_homepage.html – Website mit Startseite (Grundlagen) und Unterseiten Mein Betrieb, Mein Büro, Meine Behörde, Unterlagen, Empfehlen, Über uns
+
+04_Baukasten_Pruefbescheinigung
+  00_Leitfaden                – L Leitfaden Prüfablauf
+  01_Vorbereitung             – V1 Onboarding-Formular, V2 Unterlagen-Checkliste
+  02_Bestandteile             – A Deckblatt bis K Freigabe
+  03_Nachbereitung            – Z Zeitplan zur Mängelbehebung (Schutzzielbewertung, Vorschlag an die Behörde), N1 Übermittlung an die Behörde, N2 Nachweis Mängelbehebung
+  04_Gesamtdokument           – Bausteine A–K zusammengeführt
+  05_Muster_mit_Beispieldaten – Muster-Prüfbescheinigung, Beilagen und Muster-Zeitplan
+
+05_Pakete (alles je Paket gebündelt)
+  Mein_Betrieb   – Präsentation, Leitfaden, Vorbereitung, Bausteine A–K, Nachbereitung (Z, N1, N2), Muster
+  Mein_Buero     – Präsentation, kompletter Baukasten, Muster
+  Meine_Behoerde – Präsentation, Aufbau der Prüfbescheinigung inkl. Zeitplan, Muster
+
+06_Logos
+  paragraph82b – Logo farbig/weiß und Bildmarke (SVG, PNG)
+  alpsoft      – Logo blau/weiß, freigestellt (SVG, PNG)
+
+Offene Punkte: Fixkosten, Preise Begehung/Gegenzeichnung, Behördenangebot, Kontaktdaten Betrieb/Behörde, Gültigkeit Gutschriften, Referenz Feuerlöscher (TRVB F 124 / ÖNORM F 1053), Markenprüfung, AGB/AVV/Hosting/Impressum.
