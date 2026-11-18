@@ -1,6 +1,6 @@
 # paragraph82b — Data Model
 
-Status: **draft** · current version **v37** · 2026-11-18
+Status: **draft** · current version **v38** · 2026-11-18
 
 Final result only: this file shows the current model. How it got here (all versions and changes) is in `Data_Model.html`, published as an artifact: https://claude.ai/artifact/EHPCd6tJNDvKj14RwmwSH6. English names, each mapped to a concept term (see `GLOSSARY.md`). How the software works (orchestrator, workers, monitoring) is in [`Architecture.md`](Architecture.md).
 
@@ -82,7 +82,7 @@ One job type per unit of work and object. Modelled up to key info extraction; th
 
 Decided (Andreas, 2026-11-17): page turning stays inside ocr_page; duplicate checks are separate job types per level (file, page, document). Decided (Andreas, 2026-11-17): find_sections runs before the type is known: every document first gets a root section over the whole document, then all candidate section types are looked for beneath it; what was found is reported in DOCUMENT_FEATURES, which classify_document and later steps use.
 
-## Entity-relationship diagram (v36)
+## Entity-relationship diagram (v38)
 
 ```mermaid
 erDiagram
@@ -176,6 +176,7 @@ datetime uploaded_at
 }
 PAGE {
 uuid id PK
+uuid project_id FK "every content row carries its project"
 uuid file_id FK
 uuid document_id FK "nullable"
 int file_page_index "0 for an image"
