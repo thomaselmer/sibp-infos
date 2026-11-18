@@ -420,6 +420,7 @@ Status: tidied 2026-11-17
 - A missing document is a REFERENCE_NUMBER without document, not an empty Bescheid (D04).
 - Duplicates are decided by the user through notes and marked with duplicate_state (D02, V04).
 - No tenant (D43).
+- Definition of "Akt" for `GLOSSARY.md` (e.g. all files, pages and documents of a project?); left open for Thomas (Andreas, 2026-11-18).
 
 ### Decided, kept for reference
 
