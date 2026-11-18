@@ -71,6 +71,7 @@ footer { font-size: 0.85rem; }
       <a href="#actions">User actions</a>
       <a href="#architecture">Architecture (parked)</a>
       <a href="#jobtypes">Job types</a>
+      <a href="#changes-v33">Changes v32 → v33</a>
       <a href="#changes-v32">Changes v31 → v32</a>
       <a href="#changes-v31">Changes v30 → v31</a>
       <a href="#changes-v30">Changes v29 → v30</a>
@@ -242,6 +243,22 @@ footer { font-size: 0.85rem; }
       </table>
     </div>
     <p class="muted">Decided (Andreas, 2026-11-17): page turning stays inside <code>ocr_page</code>; duplicate checks are separate job types per level (file, page, document). <strong>Decided (Andreas, 2026-11-17):</strong> <code>find_sections</code> runs before the type is known: every document first gets a root section over the whole document, then all candidate section types are looked for beneath it; what was found is reported in <code>DOCUMENT_FEATURES</code>, which <code>classify_document</code> and later steps use.</p>
+  </section>
+
+  <section id="changes-v33">
+    <div class="head"><h2>Changes v32 → v33</h2><span class="tag">2026-11-18</span></div>
+    <div class="tablebox">
+      <table>
+        <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td class="kind add">new</td><td><code>PAGE.embedding_model</code> and <code>KEYINFO.embedding_model</code>: the model that produced the vector</td><td>The vector size is fixed per column; changing the embedding model means re-embedding a project, and this shows which vectors are stale (architecture v4; Andreas, 2026-11-18)</td></tr>
+          <tr><td class="kind add">new</td><td>Confidential columns marked for the field cipher: <code>FILE.original_name</code>, <code>PAGE.text</code>, <code>DOCUMENT.short_title</code>, <code>KEYINFO.text</code>, <code>REQUIREMENT.summary</code>, <code>EVIDENCE.summary</code>, <code>NOTE.text</code>, <code>NOTE.resolution</code>, <code>EVENT.details</code></td><td>Encryption seam of the architecture (v8); today the wrapper passes values through (Andreas, 2026-11-18)</td></tr>
+          <tr><td class="kind chg">decided</td><td>Not marked, because SQL needs them in plain form: reference numbers (unique per project, matching), page and document features, embeddings, ids, dates, status values</td><td>Encrypted columns cannot be searched or compared in PostgreSQL; once encrypted, text search on the marked columns runs in the application after decrypting</td></tr>
+          <tr><td class="kind chg">moved</td><td>Section "Architecture, not ER model" is now part of <code>Architecture.md</code> and its history page</td><td>How the software works belongs there (architecture v1)</td></tr>
+          <tr><td class="kind chg">open</td><td><code>TENANT</code> and the project's link to tenants: the project is the unit of separation, content rows hang on <code>project_id</code>, Row Level Security checks project access</td><td>Architecture v10 (ADR-paragraph-82b-0008); tenants stay out of this model's scope until the processing unit works</td></tr>
+        </tbody>
+      </table>
+    </div>
   </section>
 
   <section id="changes-v32">
@@ -809,8 +826,333 @@ footer { font-size: 0.85rem; }
     </ul>
   </section>
 
+  <section id="v33">
+    <div class="head"><h2>v33</h2><span class="tag current">current draft</span><span class="muted">embedding model, confidential columns</span></div>
+    <div class="diagram">
+<pre class="mermaid">
+erDiagram
+    USER ||--o{ PROJECT : owns
+    USER ||--o{ PROJECT_ACCESS : receives
+    PROJECT ||--o{ PROJECT_ACCESS : grants
+
+    PROJECT ||--o{ FILE : receives
+    USER o|--o{ FILE : uploads
+    FILE ||--|{ PAGE : yields
+    PROJECT ||--o{ DOCUMENT : contains
+    DOCUMENT o|--o{ PAGE : groups
+    DOCUMENT ||--o| DOCUMENT_FEATURES : described_by
+    PAGE ||--o| PAGE_FEATURES : described_by
+
+    PROJECT ||--o{ REFERENCE_NUMBER : knows
+    DOCUMENT o|--o{ REFERENCE_NUMBER : carries
+
+    DOCUMENT ||--o{ DOCUMENT_SECTION : has
+    DOCUMENT_SECTION o|--o{ DOCUMENT_SECTION : parent_of
+    PAGE ||--o{ DOCUMENT_SECTION : start_boundary
+    PAGE ||--o{ DOCUMENT_SECTION : end_boundary
+
+    PROJECT ||--o{ KEYINFO : contains
+    DOCUMENT_SECTION o|--o{ KEYINFO : originates
+    PAGE o|--o{ KEYINFO : starts
+    PAGE o|--o{ KEYINFO : ends
+    USER o|--o{ KEYINFO : authors
+
+    KEYINFO ||--o{ REQUIREMENT : stated_as
+    REQUIREMENT o|--o{ REQUIREMENT : parent_of
+    KEYINFO ||--o{ EVIDENCE : used_as
+
+    EVIDENCE ||--|{ EVIDENCE_CLAIM : claims
+    REFERENCE_NUMBER o|--o{ EVIDENCE_CLAIM : targets
+    REQUIREMENT o|--o{ EVIDENCE_CLAIM : matched_by
+
+    PROJECT ||--o{ NOTE : has
+    USER o|--o{ NOTE : resolves
+    NOTE ||--|{ NOTE_TARGET : concerns
+    DOCUMENT o|--o{ NOTE_TARGET : target
+    FILE o|--o{ NOTE_TARGET : target
+    PAGE o|--o{ NOTE_TARGET : target
+    REFERENCE_NUMBER o|--o{ NOTE_TARGET : target
+    KEYINFO o|--o{ NOTE_TARGET : target
+    REQUIREMENT o|--o{ NOTE_TARGET : target
+    EVIDENCE_CLAIM o|--o{ NOTE_TARGET : target
+
+    PROJECT ||--o{ EVENT : records
+    USER o|--o{ EVENT : triggers
+    PROJECT ||--o{ JOB : has
+    JOB ||--|{ JOB_TARGET : uses
+    JOB ||--o{ JOB_DEPENDENCY : waits_for
+    JOB ||--o{ JOB_DEPENDENCY : needed_by
+    PAGE o|--o{ JOB_TARGET : target
+    DOCUMENT o|--o{ JOB_TARGET : target
+    DOCUMENT_SECTION o|--o{ JOB_TARGET : target
+    KEYINFO o|--o{ JOB_TARGET : target
+    REQUIREMENT o|--o{ JOB_TARGET : target
+    EVIDENCE_CLAIM o|--o{ JOB_TARGET : target
+    PROJECT ||--o{ TOKEN_USAGE : costs
+    JOB o|--o{ TOKEN_USAGE : records
+
+    USER {
+        uuid id PK
+        string name
+        string email
+        string role
+        string pwd_hash
+    }
+
+    PROJECT {
+        uuid id PK
+        uuid owner_user_id FK
+        string name
+        string address
+        string tier
+        datetime created_at
+        datetime updated_at
+        datetime deleted_at
+    }
+
+    PROJECT_ACCESS {
+        uuid id PK
+        uuid project_id FK
+        uuid user_id FK
+        string access_tier
+    }
+
+    FILE {
+        uuid id PK
+        uuid project_id FK
+        uuid uploaded_by_user_id FK "nullable"
+        string file_type "image or pdf"
+        string original_name "confidential"
+        string path
+        string content_hash
+        int page_count
+        int upload_position "order within the upload"
+        string duplicate_state "nullable, original or duplicate"
+        datetime uploaded_at
+    }
+
+    PAGE {
+        uuid id PK
+        uuid file_id FK
+        uuid document_id FK "nullable"
+        int file_page_index "0 for an image"
+        int position "upload order, restarts at each document border"
+        string image_path "rendered or rotated version"
+        string classification "akt, kept, irrelevant"
+        string border_before "open, new_document, continuation"
+        float border_score "nullable, confidence 0 to 1 that border_before is right"
+        jsonb border_rules "nullable, names and points of the rules that fired"
+        string duplicate_state "nullable, original or duplicate"
+        text text "OCR text of this page; confidential"
+        vector embedding "nullable, from text"
+        string embedding_model "nullable, model of the vector"
+    }
+
+    PAGE_FEATURES {
+        uuid id PK
+        uuid page_id FK "one per page"
+        int page_number "nullable, as printed"
+        int total_page_number "nullable, of x"
+        string reference_number_raw "nullable, as read on the page"
+        date date "nullable, as read on the page"
+        string document_type_hint "nullable"
+        bool is_text_document
+        bool is_construction_plan
+        bool is_irrelevant
+        bool has_letterhead
+        bool has_subject
+        bool has_stamp
+        bool indicates_new_document
+        bool indicates_finished_document
+        bool indicates_continuation
+        bool title_authority "nullable, title pages only"
+        bool title_reference_number "nullable"
+        bool title_gegenstand_der_amtshandlung "nullable"
+        bool title_ort_der_amtshandlung "nullable"
+        bool title_beginn_der_amtshandlung "nullable"
+        bool title_verhandlungsleiter "nullable"
+        bool title_anwesende_personen "nullable"
+        bool title_verhandlungsschrift "nullable"
+        bool title_bescheid "nullable"
+        bool title_spruch "nullable"
+        bool title_betreff "nullable"
+    }
+
+    DOCUMENT_FEATURES {
+        uuid id PK
+        uuid document_id FK "one per document"
+        bool is_authority_document
+        string subtype_hint "nullable, e.g. email, data sheet"
+        bool has_gegenstand
+        bool has_organe
+        bool has_verhandlungsleiter
+        bool has_verfahrensanordnung
+        bool has_stellungnahme
+        bool has_auflagen
+        bool has_bescheid_spruch
+        bool has_rechtsgrundlage
+        bool has_rechtsmittelbelehrung
+        bool has_verfahrenskosten
+        bool has_ergeht_an
+    }
+
+    DOCUMENT {
+        uuid id PK
+        uuid project_id FK
+        string document_type
+        string short_title "nullable, generated; confidential"
+        date stated_date "nullable, date written in the document"
+        string duplicate_state "nullable, original or duplicate"
+    }
+
+    REFERENCE_NUMBER {
+        uuid id PK
+        uuid project_id FK
+        uuid document_id FK "nullable, null = document missing"
+        string raw "as read"
+        string normalized "unique per project"
+        date stated_date "nullable, known date; also from a Pruefdokument when the document is missing"
+    }
+
+    DOCUMENT_SECTION {
+        uuid id PK
+        uuid document_id FK
+        uuid parent_section_id FK
+        uuid start_page_id FK
+        uuid end_page_id FK
+        int start_line
+        int end_line
+        string section_type
+    }
+
+    KEYINFO {
+        uuid id PK
+        uuid project_id FK
+        uuid source_section_id FK "nullable"
+        uuid start_page_id FK "nullable"
+        uuid end_page_id FK "nullable"
+        uuid author_user_id FK "nullable, set for comments"
+        int start_line "nullable"
+        int end_line "nullable"
+        string creation_method "extraction, agent, user, onboarding"
+        text text "verbatim document text, stored copy; confidential"
+        vector embedding "nullable, from text"
+        string embedding_model "nullable, model of the vector"
+    }
+
+    REQUIREMENT {
+        uuid id PK
+        uuid keyinfo_id FK
+        uuid parent_requirement_id FK "nullable"
+        string point_raw "nullable, as written, e.g. 4.2, IV, b)"
+        int point "nullable, last level as integer"
+        string category "nullable, 13 subject categories"
+        interval time_interval "nullable"
+        text summary "generated; confidential"
+    }
+
+    EVIDENCE {
+        uuid id PK
+        uuid keyinfo_id FK
+        string kind "erfuellt, teilweise, mangelhaft, nicht_erfuellt, hinfaellig, ersetzt"
+        text summary "generated; confidential"
+    }
+
+    EVIDENCE_CLAIM {
+        uuid id PK
+        uuid evidence_id FK
+        uuid target_reference_number_id FK "nullable"
+        uuid requirement_id FK "nullable, null = not matched"
+        string target_point_raw "nullable, as written"
+        int target_point "nullable, last level as integer"
+        string matched_by "code, llm, user"
+    }
+
+    NOTE {
+        uuid id PK
+        uuid project_id FK
+        uuid resolved_by_user_id FK "nullable"
+        string severity
+        string status "open, resolved"
+        text text "confidential"
+        text resolution "nullable, what was decided; confidential"
+        datetime created_at
+        datetime resolved_at "nullable"
+    }
+
+    NOTE_TARGET {
+        uuid id PK
+        uuid note_id FK
+        uuid document_id FK "nullable"
+        uuid file_id FK "nullable"
+        uuid page_id FK "nullable"
+        uuid reference_number_id FK "nullable"
+        uuid keyinfo_id FK "nullable"
+        uuid requirement_id FK "nullable"
+        uuid evidence_claim_id FK "nullable"
+    }
+
+    EVENT {
+        uuid id PK
+        uuid project_id FK
+        uuid user_id FK "nullable, set for user events"
+        string origin "user or autonomous"
+        string event_type "e.g. page_removed, job_done, apply_changes"
+        jsonb details "ids and labels of the objects concerned, roles (from, to), old and new values; confidential"
+        datetime created_at
+        datetime processed_at "nullable"
+    }
+
+    JOB_DEPENDENCY {
+        uuid id PK
+        uuid job_id FK "the waiting job"
+        uuid depends_on_job_id FK "must be done first"
+    }
+
+    JOB_TARGET {
+        uuid id PK
+        uuid job_id FK
+        string access "read or write"
+        uuid page_id FK "nullable"
+        uuid document_id FK "nullable"
+        uuid section_id FK "nullable"
+        uuid keyinfo_id FK "nullable"
+        uuid requirement_id FK "nullable"
+        uuid evidence_claim_id FK "nullable"
+    }
+
+    JOB {
+        uuid id PK
+        uuid project_id FK
+        string job_type "task to run; preconditions per type in code"
+        string status "waiting, queued, running, done, failed"
+        int attempts
+        int timeout_seconds "raised on retry"
+        string worker_id "nullable"
+        text error "nullable"
+        datetime created_at
+        datetime started_at "nullable"
+        datetime heartbeat_at "nullable"
+        datetime finished_at "nullable"
+    }
+
+    TOKEN_USAGE {
+        uuid id PK
+        uuid project_id FK
+        uuid job_id FK "nullable, cleared when the job is deleted"
+        string job_type "kept when the job is gone"
+        datetime created_at
+        int input
+        int reasoning
+        int output
+        string model
+    }
+</pre>
+    </div>
+  </section>
+
   <section id="v32">
-    <div class="head"><h2>v32</h2><span class="tag current">current draft</span><span class="muted">document short title</span></div>
+    <div class="head"><h2>v32</h2><span class="tag">previous</span><span class="muted">document short title</span></div>
     <div class="diagram">
 <pre class="mermaid">
 erDiagram

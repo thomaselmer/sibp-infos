@@ -67,6 +67,7 @@ footer { font-size: 0.85rem; }
     <p class="muted">How the software architecture came about: versions, decisions and reasons, newest first. The current result is <code>docs/Architecture.md</code> in the main repository.</p>
     <nav aria-label="Sections">
       <a href="#open">Open decisions</a>
+      <a href="#v17">v17</a>
       <a href="#v16">v16</a>
       <a href="#v15">v15</a>
       <a href="#v14">v14</a>
@@ -108,8 +109,19 @@ footer { font-size: 0.85rem; }
     </table></div>
   </section>
 
+  <section id="v17">
+    <div class="head"><h2>v17</h2><span class="tag current">current</span><span class="muted">2026-11-18 · recorded model answers, data model v33</span></div>
+    <div class="tablebox"><table>
+      <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td><span class="kind add">decided</span></td><td>Automated tests replay recorded model answers on made-up data; live calls only in eval cases and quality runs; where recording costs more than it saves, the test calls the model live and stays out of the default run</td><td>Andreas, 2026-11-18: "wenn möglich und nicht zu aufwendig"</td></tr>
+        <tr><td><span class="kind add">new</span></td><td>Data model v33 follows from the architecture: embedding model stored with the vectors; confidential columns marked for the field cipher; TENANT noted for later</td><td>Andreas, 2026-11-18; see the data model's history page</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
   <section id="v16">
-    <div class="head"><h2>v16</h2><span class="tag current">current</span><span class="muted">2026-11-18 · A12 observability</span></div>
+    <div class="head"><h2>v16</h2><span class="tag">earlier</span><span class="muted">2026-11-18 · A12 observability</span></div>
     <div class="tablebox"><table>
       <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
       <tbody>

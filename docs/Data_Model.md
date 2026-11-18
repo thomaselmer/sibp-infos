@@ -1,6 +1,6 @@
 # paragraph82b — Data Model
 
-Status: **draft** · current version **v32** · 2026-11-17
+Status: **draft** · current version **v33** · 2026-11-18
 
 Final result only: this file shows the current model. How it got here (all versions and changes) is in `Data_Model.html`, published as an artifact: https://claude.ai/artifact/EHPCd6tJNDvKj14RwmwSH6. English names, each mapped to a concept term (see Terms). How the software works (orchestrator, workers, monitoring) is in [`Architecture.md`](Architecture.md).
 
@@ -103,7 +103,7 @@ One job type per unit of work and object. Modelled up to key info extraction; th
 
 Decided (Andreas, 2026-11-17): page turning stays inside ocr_page; duplicate checks are separate job types per level (file, page, document). Decided (Andreas, 2026-11-17): find_sections runs before the type is known: every document first gets a root section over the whole document, then all candidate section types are looked for beneath it; what was found is reported in DOCUMENT_FEATURES, which classify_document and later steps use.
 
-## Entity-relationship diagram (v32)
+## Entity-relationship diagram (v33)
 
 ```mermaid
 erDiagram
@@ -186,7 +186,7 @@ uuid id PK
 uuid project_id FK
 uuid uploaded_by_user_id FK "nullable"
 string file_type "image or pdf"
-string original_name
+string original_name "confidential"
 string path
 string content_hash
 int page_count
@@ -206,8 +206,9 @@ string border_before "open, new_document, continuation"
 float border_score "nullable, confidence 0 to 1 that border_before is right"
 jsonb border_rules "nullable, names and points of the rules that fired"
 string duplicate_state "nullable, original or duplicate"
-text text "OCR text of this page"
+text text "OCR text of this page; confidential"
 vector embedding "nullable, from text"
+string embedding_model "nullable, model of the vector"
 }
 PAGE_FEATURES {
 uuid id PK
@@ -259,7 +260,7 @@ DOCUMENT {
 uuid id PK
 uuid project_id FK
 string document_type
-string short_title "nullable, generated"
+string short_title "nullable, generated; confidential"
 date stated_date "nullable, date written in the document"
 string duplicate_state "nullable, original or duplicate"
 }
@@ -291,8 +292,9 @@ uuid author_user_id FK "nullable, set for comments"
 int start_line "nullable"
 int end_line "nullable"
 string creation_method "extraction, agent, user, onboarding"
-text text "verbatim document text, stored copy"
+text text "verbatim document text, stored copy; confidential"
 vector embedding "nullable, from text"
+string embedding_model "nullable, model of the vector"
 }
 REQUIREMENT {
 uuid id PK
@@ -302,13 +304,13 @@ string point_raw "nullable, as written, e.g. 4.2, IV, b)"
 int point "nullable, last level as integer"
 string category "nullable, 13 subject categories"
 interval time_interval "nullable"
-text summary "generated"
+text summary "generated; confidential"
 }
 EVIDENCE {
 uuid id PK
 uuid keyinfo_id FK
 string kind "erfuellt, teilweise, mangelhaft, nicht_erfuellt, hinfaellig, ersetzt"
-text summary "generated"
+text summary "generated; confidential"
 }
 EVIDENCE_CLAIM {
 uuid id PK
@@ -325,8 +327,8 @@ uuid project_id FK
 uuid resolved_by_user_id FK "nullable"
 string severity
 string status "open, resolved"
-text text
-text resolution "nullable, what was decided"
+text text "confidential"
+text resolution "nullable, what was decided; confidential"
 datetime created_at
 datetime resolved_at "nullable"
 }
@@ -347,7 +349,7 @@ uuid project_id FK
 uuid user_id FK "nullable, set for user events"
 string origin "user or autonomous"
 string event_type "e.g. page_removed, job_done, apply_changes"
-jsonb details "ids and labels of the objects concerned, roles (from, to), old and new values"
+jsonb details "ids and labels of the objects concerned, roles (from, to), old and new values; confidential"
 datetime created_at
 datetime processed_at "nullable"
 }
@@ -394,6 +396,17 @@ string model
 }
 ```
 
+## Confidential columns and embeddings
+
+- **Confidential** (marked in the diagram; go through the field cipher of the architecture, section 9; today it
+  passes values through): FILE.original_name, PAGE.text, DOCUMENT.short_title, KEYINFO.text, REQUIREMENT.summary,
+  EVIDENCE.summary, NOTE.text, NOTE.resolution, EVENT.details.
+- **Not marked**, because SQL needs them in plain form: reference numbers (unique per project, matching), page and
+  document features, embeddings, ids, dates, status values. Once encrypted, text search on the marked columns runs in
+  the application after decrypting.
+- **embedding_model** on PAGE and KEYINFO names the model that produced the vector; changing the embedding model
+  means re-embedding a project, and this column shows which vectors are stale.
+
 ## Open questions
 
 Status: tidied 2026-11-17
@@ -416,6 +429,8 @@ Status: tidied 2026-11-17
 ### Out of scope
 
 - Tenants, plans, roles per tenant, project master data (concept D43, D05, D06, D10).
+- When tenants come in: TENANT and the project's link to tenants; the project is the unit of separation, content
+  rows hang on project_id, Row Level Security checks project access (architecture, ADR-paragraph-82b-0008).
 
 ### Needs Thomas's agreement (deviations from the concept)
 

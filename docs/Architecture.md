@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 16 · 2026-11-18 · Task T-3
+Status: **draft** · Version 17 · 2026-11-18 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -429,8 +429,10 @@ through wrappers that will handle encryption later; today they pass data through
 | integration | whole flow with PostgreSQL, Redis and MinIO in Docker Compose | made-up mini Akt |
 | quality runs and eval cases | stage metrics and error cases | golden dataset, local only |
 
-- **Suggestion** (not yet confirmed): automated tests replay recorded model answers (on made-up data); live model
-  calls only in eval cases and quality runs.
+- **Recorded model answers** (Andreas, 2026-11-18, where possible and not too costly): automated tests replay
+  recorded model answers (on made-up data); live model calls only in eval cases and quality runs. Where recording
+  costs more than it saves (e.g. a flow still changing every day), that test calls the model live and is kept out
+  of the default test run.
 
 ## 12. Deployment and environments
 
