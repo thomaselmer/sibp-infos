@@ -67,6 +67,7 @@ footer { font-size: 0.85rem; }
     <p class="muted">How the software architecture came about: versions, decisions and reasons, newest first. The current result is <code>docs/Architecture.md</code> in the main repository.</p>
     <nav aria-label="Sections">
       <a href="#open">Open decisions</a>
+      <a href="#v7">v7</a>
       <a href="#v6">v6</a>
       <a href="#v5">v5</a>
       <a href="#v4">v4</a>
@@ -98,8 +99,24 @@ footer { font-size: 0.85rem; }
     </table></div>
   </section>
 
+  <section id="v7">
+    <div class="head"><h2>v7</h2><span class="tag current">current</span><span class="muted">2026-11-18 · lanes with sorted queues</span></div>
+    <div class="tablebox"><table>
+      <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td><span class="kind add">decided</span></td><td>Lanes per model (from the job type's model configuration) plus a lane <code>code</code> for job types without a model call; switching a model moves the job type to that lane</td><td>Andreas, 2026-11-18: liked separate streams per model too; a bottleneck stays in its lane</td></tr>
+        <tr><td><span class="kind add">decided</span></td><td>One sorted queue per lane (Redis sorted set), ranked by priority, then time; jobs from "Apply changes" get the fast lane priority; more levels possible</td><td>Andreas, 2026-11-18: "damit könnte man eine Fastlane erreichen"</td></tr>
+        <tr><td><span class="kind chg">changed</span></td><td>Semaphore slot is taken before a job is taken from a model lane; no free slot means the lane is skipped. Jobs only go back for rate-limit answers (HTTP 429), with a growing delay, counting as no attempt</td><td>Removes busy loops and reordering from v6</td></tr>
+        <tr><td><span class="kind add">new</span></td><td>Taking a job is a lease: moved atomically to the lane's in-flight set with expiry, extended by heartbeat, removed on acknowledgement; expired leases put the job back as queued</td><td>Sorted sets have no built-in acknowledgement or dead-consumer detection; built into the queue code</td></tr>
+        <tr><td><span class="kind chg">changed</span></td><td>Cap per project counts over all lanes; workers serve all lanes in the MVP, can be limited to some lanes by configuration</td><td>Follows from lanes</td></tr>
+        <tr><td><span class="kind del">replaced</span></td><td>v6 priority stream; v6 "back to the pool when the semaphore is full"</td><td>Replaced by the sorted queue and the slot-before-job rule</td></tr>
+        <tr><td><span class="kind del">rejected</span></td><td>Two Redis streams per lane (priority and normal); one stream per lane without priority</td><td>Only two priority levels and more streams; no fast lane</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
   <section id="v6">
-    <div class="head"><h2>v6</h2><span class="tag current">current</span><span class="muted">2026-11-18 · job pool, fairness, model limits</span></div>
+    <div class="head"><h2>v6</h2><span class="tag">earlier</span><span class="muted">2026-11-18 · job pool, fairness, model limits</span></div>
     <div class="tablebox"><table>
       <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
       <tbody>

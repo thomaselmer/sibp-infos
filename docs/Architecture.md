@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 6 · 2026-11-18 · Task T-3
+Status: **draft** · Version 7 · 2026-11-18 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -144,9 +144,9 @@ Decided so far (data model, section "Architecture, not ER model", and versions v
 - **Many projects per orchestrator process.** An `orchestrator` process hosts one engine per active project (an
   asyncio task). A project is claimed exclusively through a PostgreSQL lock, so several orchestrator processes can
   share the projects and one takes over after another crashed. Idle projects are unloaded.
-- **Redis as message channel.** The engine puts runnable jobs with their inputs into a Redis job stream; workers take
+- **Redis as message channel.** The engine puts runnable jobs with their inputs into Redis lane queues; workers take
   them, send heartbeats and post typed results to a result stream that the engines read. A job taken but not
-  acknowledged by a dead worker is detected and goes back to queued (restart rule above).
+  acknowledged by a dead worker goes back to queued (restart rule above). Details below.
 - **Large inputs through object storage.** A job message holds ids, texts and object-storage keys. The worker reads
   images straight from object storage and saves new files there (e.g. a turned page), returning the key in its
   result. Workers never touch the database.
@@ -175,40 +175,44 @@ sequenceDiagram
 - Redis holds only messages in transit; PostgreSQL stays the source of truth (jobs, events, results). After a Redis
   loss the engine re-sends queued jobs from the database.
 
-### Job pool, fairness and model limits
+### Job pool, lanes and fairness
 
 **Decided** (Andreas, 2026-11-18):
 
 | Place | Holds | Purpose |
 |---|---|---|
 | JOB table (PostgreSQL) | all jobs of all projects in every status, with project_id | source of truth, restart, progress |
-| job streams (Redis) | only runnable jobs of all projects | what workers take from |
+| lane queues (Redis) | only runnable jobs of all projects, one sorted queue per lane | what workers take from |
+| result streams (Redis) | one per orchestrator process | results back to the engine holding the project |
 
 - **One shared pool.** Workers belong to no project and no orchestrator; they take whatever runnable job comes next,
   so they work where most is needed. A job message carries project_id, job type and the result stream of the
   orchestrator process that holds the project; the worker posts its result there. A late result for an orchestrator
   that died is lost; the job runs again under the new owner (restart rule).
-- **Cap per project.** An engine keeps at most N of its jobs in the pool at once (queued plus running; N in
-  configuration). It holds back the rest and adds more as results arrive, so a 5,000-page Akt cannot crowd out a
-  small project.
-- **Priority stream for user actions.** Jobs created by "Apply changes" go into a second stream that workers check
-  first, so corrections in the editor come back quickly while a large Akt runs.
-- **Semaphore per model.** Before a model call, an AI job takes a slot of a shared semaphore for its model (as
-  configured per job type, section 6; size in configuration). Jobs without a model call skip it.
-  - No free slot: the job goes back to the pool with a short, growing delay (no busy loop); the worker takes the next
-    job.
+- **Lanes per model.** Each model configured for a job type (section 6) has its own lane; job types without a model
+  call share the lane `code`. Switching a job type's model moves its jobs to that model's lane.
+- **Sorted queue per lane** (Redis sorted set). The rank is priority first, then time. Jobs from "Apply changes" get
+  the fast lane priority and come before waiting jobs of other projects; more priority levels are possible.
+- **Semaphore per model, taken before the job.** A worker goes through the lanes; for a model lane it first takes a
+  slot of that model's semaphore (size in configuration) and only then takes the first job of the lane. No free slot:
+  it skips the lane. No job: it gives the slot back.
   - Slots are leases with an expiry, extended by the worker's heartbeat; a dead worker's slot frees itself.
-  - Going back to the pool is not a failure: it counts as no attempt and does not raise the timeout. A provider's
-    rate-limit answer (HTTP 429) is handled the same way.
-  - Limits on tokens per minute are not covered; a token bucket can be added later on the same principle.
+- **Taking a job is a lease too.** Taking moves the job atomically from the queue to the lane's in-flight set with an
+  expiry; the worker's heartbeat extends it; acknowledging the result removes it. An expired lease (dead worker) puts
+  the job back as queued (restart rule). Sorted sets do not bring this, so it is built into the queue code.
+- **Cap per project.** An engine keeps at most N of its jobs in the pool at once, over all lanes (queued plus
+  running; N in configuration). It holds back the rest and adds more as results arrive, so a 5,000-page Akt cannot
+  crowd out a small project.
+- **Rate-limit answers** (HTTP 429): the job goes back into its lane with a short, growing delay (rank in the
+  future); this counts as no attempt and does not raise the timeout.
+- Limits on tokens per minute are not covered; a token bucket can be added later on the same principle.
+- Workers serve all lanes in the MVP; a worker can be limited to some lanes by configuration (e.g. own OCR workers).
 
 | Mechanism | Solves |
 |---|---|
-| semaphore per model | provider rate limits and load |
+| lanes with a semaphore per model | provider rate limits and load; a bottleneck stays in its lane |
+| sorted queue with priority | fast lane for corrections |
 | cap per project | fairness between projects |
-| priority stream | quick feedback on corrections |
-- **Suggestion** (from A1, still to confirm): job types live with the module that owns their data and register with
-  the processing engine.
 
 ## 6. AI models and flows
 
