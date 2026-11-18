@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 8 · 2026-11-18 · Task T-3
+Status: **draft** · Version 9 · 2026-11-18 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -101,11 +101,31 @@ in CI):
 | reports | report snapshots, versions, PDF output, office branding | D07 branch 6, D49 |
 | rulebooks | Pfade as configuration (e.g. § 82b interval, catalogue) | D11 |
 | backoffice | platform admin: plans, support access, feature flags | D06, D14 |
+| ai | AI flows (LangChain/LangGraph) per job type, model configuration, token usage capture | D14, D15 |
 | integration | external API (prepared, not built in the MVP) | D13 |
 | billing | plans and payment (prepared, not built in the MVP) | D14, D16 |
 
-Job types live with the module that owns their data (e.g. `ocr_page` in akt, `extract_keyinfos` in knowledge) and
-register with the processing engine. **Suggestion**, to be confirmed in A5.
+**Job types are split by role** (Andreas, 2026-11-18). Example `ocr_page`:
+
+```
+processing/
+  engine/            generic: events, scheduling, lanes, batch writer
+  jobs/
+    ocr_page.py      chain part: precondition, inputs, follow-up candidates, what it invalidates
+ai/
+  flows/
+    ocr_page.py      LangGraph flow, returns the typed result
+  model config       model per job type (section 6); decides the lane
+akt/
+  service            apply_ocr_result(...): writes text, features, classification
+```
+
+- The whole chain (preconditions, follow-ups, invalidation) is readable in `processing/jobs`; it changes often while
+  the steps after key info extraction are still open.
+- AI flows and their model configuration are gathered in `ai`, so a job type's model can be switched in one place
+  (section 6).
+- Each module writes only its own data, through its public interface; the engine calls it inside the batch
+  transaction. Job types without a model call have no flow in `ai`.
 
 ## 5. Processing runtime
 
@@ -252,7 +272,7 @@ Consequences and guidelines:
 - Files and page images live in S3-compatible object storage; workers read and write there directly (A5).
 - **MinIO in every environment** (Andreas, 2026-11-18, A6), self-run in Docker Compose; code speaks only the S3 API.
   Replication and backups of the files are our job.
-- **Suggestion** (to confirm): key layout `tenants/<tenant>/projects/<project>/files/…`, `…/pages/…`; deleting a
+- **Decided** (Andreas, 2026-11-18): key layout `tenants/<tenant>/projects/<project>/files/…`, `…/pages/…`; deleting a
   project deletes its prefix; MinIO policies can be set per prefix; per-tenant keys can come later without moving
   files.
 - **Open:** retention of files after a project is deleted; backup schedule (with A2).
@@ -283,7 +303,7 @@ through wrappers that will handle encryption later; today they pass data through
 
 ### Access and infrastructure
 
-**Suggestion** (presented 2026-11-18, not yet decided):
+**Decided** (Andreas, 2026-11-18):
 - TLS for every connection (browser, PostgreSQL, MinIO, model provider); disk encryption (LUKS) on dev and prod
   servers; backups encrypted with a key kept apart from the servers.
 - Users: permission check in the app (tenant type × plan × role × project access, D06, A8); PostgreSQL Row Level
