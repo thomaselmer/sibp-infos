@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 1 · 2026-11-18 · Task T-3
+Status: **draft** · Version 2 · 2026-11-18 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -58,13 +58,54 @@ flowchart LR
 
 ## 4. Building blocks
 
-**Open** (A1): system shape, containers and module boundaries.
+**Decided** (Andreas, 2026-11-18, A1; ADR-paragraph-82b-0004): **modular monolith.** One Python codebase
+(FastAPI) with strictly separated modules, run as three processes from the same code; the Next.js frontend is
+separate.
 
-Module candidates from the concept (D14, D17), to be cut in A1:
-identity and access · projects and onboarding · Akt (files, pages, documents, editor) · processing engine ·
-knowledge (key infos, requirements, evidence, matching) · notes and events · inspection (comments, walkthrough,
-defects, risk) · measures · reports (snapshot, PDF, branding) · rulebooks (Pfade) · backoffice ·
-integration API (prepared) · billing (prepared).
+```mermaid
+flowchart LR
+  FE[frontend<br/>Next.js] --> API
+  subgraph Backend[backend: one Python codebase]
+    API[api<br/>FastAPI]
+    ORC[orchestrator<br/>engine, one per project]
+    WRK[worker<br/>runs job tasks]
+  end
+  API --> DB[(PostgreSQL<br/>pgvector)]
+  ORC --> DB
+  ORC -. jobs and results .- WRK
+  WRK --> LLM[LLM and embedding provider]
+```
+
+| Process | Does | Scales by |
+|---|---|---|
+| api | HTTP API for the frontend: reads, user actions (stored as events), uploads | requests |
+| orchestrator | Consumes events per project, schedules jobs, writes job results in batches (section 5) | number of active projects |
+| worker | Runs job tasks; no database access; returns typed results | LLM load (pages per minute) |
+
+Why: the rule "consuming an event and its effects is one transaction" needs one database and one codebase; a small
+team keeps one deploy; the heavy LLM load still scales on its own through the worker process.
+
+**Modules** (one package each; a module uses another only through its public interface; checked by import rules
+in CI):
+
+| Module | Holds | Concept |
+|---|---|---|
+| identity | tenants, users, roles, project access, feature flags | D43, D06 |
+| projects | project (Betriebsobjekt), master data, onboarding | D03, D07 branch 1 |
+| akt | files, pages, documents, sections, reference numbers, editor actions | D44, D04, V01–V07 |
+| processing | engine (events, scheduling, batch writer) and job type definitions | D15, D27 |
+| knowledge | key infos, requirements, evidence, claims, matching, status calculation | D46, D47, V08–V11 |
+| notes | notes for the user and the event log | D02 |
+| inspection | comments, walkthrough checklist, defects, risk classification | D07 branch 4, D49 |
+| measures | measure plan | D07 branch 5, D49 |
+| reports | report snapshots, versions, PDF output, office branding | D07 branch 6, D49 |
+| rulebooks | Pfade as configuration (e.g. § 82b interval, catalogue) | D11 |
+| backoffice | platform admin: plans, support access, feature flags | D06, D14 |
+| integration | external API (prepared, not built in the MVP) | D13 |
+| billing | plans and payment (prepared, not built in the MVP) | D14, D16 |
+
+Job types live with the module that owns their data (e.g. `ocr_page` in akt, `extract_keyinfos` in knowledge) and
+register with the processing engine. **Suggestion**, to be confirmed in A5.
 
 ## 5. Processing runtime
 
@@ -130,7 +171,6 @@ Worked through one at a time, in this order (later ones depend on earlier ones).
 
 | ID | Decision | Depends on |
 |---|---|---|
-| A1 | System shape: modular monolith vs services; containers; module boundaries | — |
 | A2 | Hosting and deployment (EU), environments | A1 |
 | A3 | LLM and embedding providers, EU data residency | A2 |
 | A4 | LLM integration layer: LangChain/LangGraph vs own thin layer (D19 asks to check) | A3 |

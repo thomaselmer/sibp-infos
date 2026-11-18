@@ -57,8 +57,11 @@ This file states the rules for agents completely. Decisions with background are 
   commit attribution follow that person's choice; ask them when it is not known.
 - Never commit to `dev`, `main` or another person's branch.
 
-## Processing
-Event-driven job pool, not a pipeline; any stage can be reset by invalidating its jobs (ADR-paragraph-82b-0003).
+## Architecture
+- Modular monolith: one Python codebase, run as the processes `api`, `orchestrator` and `worker`; modules use
+  each other only through their public interfaces (ADR-paragraph-82b-0004).
+- Event-driven job pool, not a pipeline; any stage can be reset by invalidating its jobs (ADR-paragraph-82b-0003).
+- Details: `docs/Architecture.md`.
 
 ## Decisions (ADRs)
 - **Threshold:** an ADR only when a decision is hard to reverse, would surprise a reader without context, and
