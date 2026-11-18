@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 5 · 2026-11-18 · Task T-3
+Status: **draft** · Version 6 · 2026-11-18 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -174,6 +174,39 @@ sequenceDiagram
 
 - Redis holds only messages in transit; PostgreSQL stays the source of truth (jobs, events, results). After a Redis
   loss the engine re-sends queued jobs from the database.
+
+### Job pool, fairness and model limits
+
+**Decided** (Andreas, 2026-11-18):
+
+| Place | Holds | Purpose |
+|---|---|---|
+| JOB table (PostgreSQL) | all jobs of all projects in every status, with project_id | source of truth, restart, progress |
+| job streams (Redis) | only runnable jobs of all projects | what workers take from |
+
+- **One shared pool.** Workers belong to no project and no orchestrator; they take whatever runnable job comes next,
+  so they work where most is needed. A job message carries project_id, job type and the result stream of the
+  orchestrator process that holds the project; the worker posts its result there. A late result for an orchestrator
+  that died is lost; the job runs again under the new owner (restart rule).
+- **Cap per project.** An engine keeps at most N of its jobs in the pool at once (queued plus running; N in
+  configuration). It holds back the rest and adds more as results arrive, so a 5,000-page Akt cannot crowd out a
+  small project.
+- **Priority stream for user actions.** Jobs created by "Apply changes" go into a second stream that workers check
+  first, so corrections in the editor come back quickly while a large Akt runs.
+- **Semaphore per model.** Before a model call, an AI job takes a slot of a shared semaphore for its model (as
+  configured per job type, section 6; size in configuration). Jobs without a model call skip it.
+  - No free slot: the job goes back to the pool with a short, growing delay (no busy loop); the worker takes the next
+    job.
+  - Slots are leases with an expiry, extended by the worker's heartbeat; a dead worker's slot frees itself.
+  - Going back to the pool is not a failure: it counts as no attempt and does not raise the timeout. A provider's
+    rate-limit answer (HTTP 429) is handled the same way.
+  - Limits on tokens per minute are not covered; a token bucket can be added later on the same principle.
+
+| Mechanism | Solves |
+|---|---|
+| semaphore per model | provider rate limits and load |
+| cap per project | fairness between projects |
+| priority stream | quick feedback on corrections |
 - **Suggestion** (from A1, still to confirm): job types live with the module that owns their data and register with
   the processing engine.
 

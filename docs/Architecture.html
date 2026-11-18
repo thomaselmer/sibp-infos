@@ -67,6 +67,7 @@ footer { font-size: 0.85rem; }
     <p class="muted">How the software architecture came about: versions, decisions and reasons, newest first. The current result is <code>docs/Architecture.md</code> in the main repository.</p>
     <nav aria-label="Sections">
       <a href="#open">Open decisions</a>
+      <a href="#v6">v6</a>
       <a href="#v5">v5</a>
       <a href="#v4">v4</a>
       <a href="#v3">v3</a>
@@ -97,8 +98,23 @@ footer { font-size: 0.85rem; }
     </table></div>
   </section>
 
+  <section id="v6">
+    <div class="head"><h2>v6</h2><span class="tag current">current</span><span class="muted">2026-11-18 · job pool, fairness, model limits</span></div>
+    <div class="tablebox"><table>
+      <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td><span class="kind add">decided</span></td><td>One shared pool for all projects: the JOB table holds all jobs of all projects; the Redis streams only runnable ones. Workers take whatever comes next; results go to the stream of the orchestrator holding the project; a late result for a dead orchestrator is lost and the job runs again</td><td>Andreas, 2026-11-18: workers work where most is needed</td></tr>
+        <tr><td><span class="kind add">decided</span></td><td>Cap per project: at most N jobs of a project in the pool at once (queued plus running), the engine holds back the rest</td><td>Andreas, 2026-11-18. A 5,000-page Akt must not crowd out a small project</td></tr>
+        <tr><td><span class="kind add">decided</span></td><td>Priority stream for jobs from "Apply changes", checked first by workers</td><td>Andreas, 2026-11-18. Quick feedback on editor corrections</td></tr>
+        <tr><td><span class="kind add">decided</span></td><td>Semaphore per model: an AI job takes a slot before its model call; without a free slot it goes back to the pool with a growing delay; slots are leases with expiry; going back is no attempt and no timeout raise; rate-limit answers (HTTP 429) handled the same way</td><td>Andreas, 2026-11-18 (his proposal). Respects provider limits per model; avoids busy loops and slots lost to dead workers</td></tr>
+        <tr><td><span class="kind chg">open</span></td><td>Limits on tokens per minute: not covered; a token bucket on the same principle if needed</td><td>The semaphore limits only concurrent calls</td></tr>
+        <tr><td><span class="kind del">dropped</span></td><td>Separate streams per model or provider</td><td>Replaced by the semaphore per model</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
   <section id="v5">
-    <div class="head"><h2>v5</h2><span class="tag current">current</span><span class="muted">2026-11-18 · A5 processing runtime</span></div>
+    <div class="head"><h2>v5</h2><span class="tag">earlier</span><span class="muted">2026-11-18 · A5 processing runtime</span></div>
     <div class="tablebox"><table>
       <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
       <tbody>

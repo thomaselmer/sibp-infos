@@ -18,6 +18,11 @@ heartbeats. How this runs was open. Chosen by Andreas on 2026-11-18 (architectur
 - Job messages hold ids, texts and object-storage keys. Workers read images from object storage and save new files
   there; they never touch the database.
 - PostgreSQL stays the source of truth; Redis holds only messages in transit.
+- One shared pool for all projects: workers take whatever runnable job comes next; results go to the stream of the
+  orchestrator process that holds the project.
+- Fairness and limits: a cap of jobs in the pool per project, a priority stream for jobs from user actions, and a
+  semaphore per model (leases with expiry); a job without a free slot, or answered with a rate limit, goes back to
+  the pool with a growing delay and does not count as an attempt.
 
 ## Alternatives considered
 - One orchestrator process per project: simple, but many containers and slow starts with many projects.
