@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 3 · 2026-11-18 · Task T-3
+Status: **draft** · Version 4 · 2026-11-18 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -140,20 +140,51 @@ Decided so far (data model, section "Architecture, not ER model", and versions v
 **Open** (A5): how orchestrators and workers run and talk to each other (process model, transport, how inputs reach
 a worker that does not touch the database).
 
-## 6. Data and storage
+## 6. AI models and flows
+
+**Decided** (Andreas, 2026-11-18, A3 and A4; ADR-paragraph-82b-0006):
+
+- **Modular per job type.** Each job type that calls a model names its model in configuration (provider, model,
+  parameters). A job type's model can be switched on its own, when another model fits that step better; nothing else
+  changes.
+- **Start:** all job types use the OpenAI API with one API key (environment variable, never in the repository).
+- **AI flows with LangChain and LangGraph.** A job's task runs its flow (a LangChain call or a LangGraph graph) inside
+  the worker and returns the job's typed result; flows never touch the database (section 5).
+- **Allowed providers** (A3): providers with processing in the EU and storage of the content excluded by contract,
+  US or European. **Open:** check the OpenAI account's terms (data retention, region) before real customer data is
+  processed in prod.
+- **Token usage** is recorded per call (model, input, reasoning, output) and returned with the job result; the
+  orchestrator writes TOKEN_USAGE (data model).
+
+| Job type (up to key info extraction) | Model use |
+|---|---|
+| ocr_page | vision model: classify page, read text, page features |
+| embed_page, embed_keyinfo | embedding model |
+| find_sections, classify_document, extract_keyinfos | text model |
+| ingest_file, decide_border, assemble_document, duplicate checks, check_reference_numbers | no model (code), unless decided otherwise per job type |
+
+Consequences and guidelines:
+- **Embeddings:** the vector size is fixed per column; changing the embedding model means re-embedding every page and
+  key info of a project. Store the embedding model name with the vectors. **Suggestion**, to confirm in the data
+  model.
+- **LangGraph state:** nodes return only the fields they change. Returning the whole state with an adding reducer
+  counts token usage several times (seen in the prototype).
+- Quality and cost per job type are compared on test data before a model is switched (A13).
+
+## 7. Data and storage
 
 - PostgreSQL with pgvector (Andreas, 2026-11-17, same stack as the prototype); embeddings per page and per key info
   (data model v15, v16).
 - **Open** (A6): where files and page images are stored.
 - **Open** (A7): how tenants are separated.
 
-## 7. Security and confidentiality
+## 8. Security and confidentiality
 
 Principles from D06 (platform admins see no customer content, time-limited support access with customer consent,
 every access logged and visible to the customer, real loss of access after revocation, later encryption per
 tenant). **Open** (A7, A8): technical realisation.
 
-## 8. Observability
+## 9. Observability
 
 - Two separate stores (Andreas, 2026-11-17): EVENT table = project history for users and the orchestrator's input;
   a log/metrics store for the operator across projects (job durations, failure rates, retries, queue length, worker
@@ -161,7 +192,7 @@ tenant). **Open** (A7, A8): technical realisation.
 - Monitoring holds only ids, counts and durations, no customer content (D06).
 - **Open** (A12): concrete stack (the data model names Grafana as an example).
 
-## 9. Deployment and environments
+## 10. Deployment and environments
 
 **Decided** (Andreas, 2026-11-18, A2; ADR-paragraph-82b-0005): **containers on rented servers of a European
 provider**, run with Docker Compose, as in the prototype. No US cloud provider holds customer data.
@@ -203,8 +234,6 @@ Worked through one at a time, in this order (later ones depend on earlier ones).
 
 | ID | Decision | Depends on |
 |---|---|---|
-| A3 | LLM and embedding providers, EU data residency | A2 |
-| A4 | LLM integration layer: LangChain/LangGraph vs own thin layer (D19 asks to check) | A3 |
 | A5 | Orchestrator and worker runtime, job transport, worker inputs | A1 |
 | A6 | File and image storage | A2 |
 | A7 | Tenant separation and confidentiality measures | A1 |
@@ -213,4 +242,4 @@ Worked through one at a time, in this order (later ones depend on earlier ones).
 | A10 | Report and checklist generation (PDF, branding) | A1 |
 | A11 | Rulebooks (Pfade) as configuration | A1 |
 | A12 | Observability stack | A2 |
-| A13 | Testing and measuring processing quality without labelled data (A07) | A4, A5 |
+| A13 | Testing and measuring processing quality without labelled data (A07) | A5 |

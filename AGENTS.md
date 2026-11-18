@@ -63,6 +63,8 @@ This file states the rules for agents completely. Decisions with background are 
 - Event-driven job pool, not a pipeline; any stage can be reset by invalidating its jobs (ADR-paragraph-82b-0003).
 - Hosting: containers with Docker Compose on servers of a European provider; environments local, dev, prod
   (ADR-paragraph-82b-0005).
+- AI: model configurable per job type (start: OpenAI API); flows with LangChain and LangGraph inside the worker
+  (ADR-paragraph-82b-0006).
 - Details: `docs/Architecture.md`.
 
 ## Decisions (ADRs)

@@ -67,6 +67,7 @@ footer { font-size: 0.85rem; }
     <p class="muted">How the software architecture came about: versions, decisions and reasons, newest first. The current result is <code>docs/Architecture.md</code> in the main repository.</p>
     <nav aria-label="Sections">
       <a href="#open">Open decisions</a>
+      <a href="#v4">v4</a>
       <a href="#v3">v3</a>
       <a href="#v2">v2</a>
       <a href="#v1">v1</a>
@@ -80,9 +81,9 @@ footer { font-size: 0.85rem; }
       <tbody>
         <tr><td><code>A1</code></td><td>System shape: modular monolith vs services; containers; module boundaries</td><td>–</td><td>decided v2</td></tr>
         <tr><td><code>A2</code></td><td>Hosting and deployment (EU), environments</td><td>A1</td><td>decided v3</td></tr>
-        <tr><td><code>A3</code></td><td>LLM and embedding providers, EU data residency</td><td>A2</td><td>next</td></tr>
-        <tr><td><code>A4</code></td><td>LLM integration layer: LangChain/LangGraph vs own thin layer (D19)</td><td>A3</td><td>open</td></tr>
-        <tr><td><code>A5</code></td><td>Orchestrator and worker runtime, job transport, worker inputs</td><td>A1</td><td>open</td></tr>
+        <tr><td><code>A3</code></td><td>LLM and embedding providers, EU data residency</td><td>A2</td><td>decided v4</td></tr>
+        <tr><td><code>A4</code></td><td>LLM integration layer: LangChain/LangGraph vs own thin layer (D19)</td><td>A3</td><td>decided v4</td></tr>
+        <tr><td><code>A5</code></td><td>Orchestrator and worker runtime, job transport, worker inputs</td><td>A1</td><td>next</td></tr>
         <tr><td><code>A6</code></td><td>File and image storage</td><td>A2</td><td>open</td></tr>
         <tr><td><code>A7</code></td><td>Tenant separation and confidentiality measures</td><td>A1</td><td>open</td></tr>
         <tr><td><code>A8</code></td><td>Authentication, roles, feature flags (four dimensions, D06)</td><td>A7</td><td>open</td></tr>
@@ -95,8 +96,26 @@ footer { font-size: 0.85rem; }
     </table></div>
   </section>
 
+  <section id="v4">
+    <div class="head"><h2>v4</h2><span class="tag current">current</span><span class="muted">2026-11-18 · A3 models, A4 AI flows</span></div>
+    <div class="tablebox"><table>
+      <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td><span class="kind add">decided</span></td><td>Model configured per job type (provider, model, parameters); one job type's model can be switched on its own when another fits better; ADR-paragraph-82b-0006 (Proposed)</td><td>Andreas, 2026-11-18: "it should stay modular"</td></tr>
+        <tr><td><span class="kind add">decided</span></td><td>Start: all job types on the OpenAI API with one API key</td><td>Andreas, 2026-11-18</td></tr>
+        <tr><td><span class="kind add">decided</span></td><td>AI flows with LangChain and LangGraph, run inside the worker's job task, returning the typed job result, no database access</td><td>Andreas, 2026-11-18; answers the concept's LangChain question (D19)</td></tr>
+        <tr><td><span class="kind add">decided</span></td><td>Allowed providers: processing in the EU and storage of the content excluded by contract; US or European</td><td>Andreas, 2026-11-18 (A3 option "neutral layer")</td></tr>
+        <tr><td><span class="kind add">new</span></td><td>Model use per job type up to key info extraction (vision for <code>ocr_page</code>, embeddings, text model for sections, classification, extraction; code for the rest)</td><td>Follows from the job types in the data model</td></tr>
+        <tr><td><span class="kind chg">suggestion</span></td><td>Store the embedding model name with the vectors; changing the embedding model means re-embedding a project</td><td>Vector size is fixed per column; to confirm in the data model</td></tr>
+        <tr><td><span class="kind chg">open</span></td><td>Check the OpenAI account's terms (data retention, region) before real customer data is processed in prod</td><td>Confidentiality (D06)</td></tr>
+        <tr><td><span class="kind add">new</span></td><td>Guideline: LangGraph nodes return only the fields they change</td><td>Returning the whole state with an adding reducer counted token usage several times in the prototype</td></tr>
+        <tr><td><span class="kind chg">changed</span></td><td>Sections renumbered: new section 6 "AI models and flows"</td><td>Readability</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
   <section id="v3">
-    <div class="head"><h2>v3</h2><span class="tag current">current</span><span class="muted">2026-11-18 · A2 hosting and environments</span></div>
+    <div class="head"><h2>v3</h2><span class="tag">earlier</span><span class="muted">2026-11-18 · A2 hosting and environments</span></div>
     <div class="tablebox"><table>
       <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
       <tbody>
