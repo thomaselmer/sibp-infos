@@ -67,6 +67,7 @@ footer { font-size: 0.85rem; }
     <p class="muted">How the software architecture came about: versions, decisions and reasons, newest first. The current result is <code>docs/Architecture.md</code> in the main repository.</p>
     <nav aria-label="Sections">
       <a href="#open">Open decisions</a>
+      <a href="#v22">v22</a>
       <a href="#v21">v21</a>
       <a href="#v20">v20</a>
       <a href="#v19">v19</a>
@@ -101,7 +102,7 @@ footer { font-size: 0.85rem; }
         <tr><td><code>A3</code></td><td>LLM and embedding providers, EU data residency</td><td>A2</td><td>decided v4</td></tr>
         <tr><td><code>A4</code></td><td>LLM integration layer: LangChain/LangGraph vs own thin layer (D19)</td><td>A3</td><td>decided v4</td></tr>
         <tr><td><code>A5</code></td><td>Orchestrator and worker runtime, job transport, worker inputs</td><td>A1</td><td>decided v5</td></tr>
-        <tr><td><code>A6</code></td><td>Object storage details: provider, local setup, key layout, encryption, retention (object storage itself decided in v5)</td><td>A2</td><td>decided v8 (key layout and retention still open)</td></tr>
+        <tr><td><code>A6</code></td><td>Object storage details: provider, local setup, key layout, encryption, retention (object storage itself decided in v5)</td><td>A2</td><td>reopened v22: product and encryption for Thomas</td></tr>
         <tr><td><code>A7</code></td><td>Tenant separation and confidentiality measures</td><td>A1</td><td>decided v10</td></tr>
         <tr><td><code>A8</code></td><td>Authentication, roles, feature flags (four dimensions, D06)</td><td>A7</td><td>deferred v11</td></tr>
         <tr><td><code>A9</code></td><td>Frontend–backend API and live progress</td><td>A1, A5</td><td>decided v12, upload path v13</td></tr>
@@ -113,8 +114,20 @@ footer { font-size: 0.85rem; }
     </table></div>
   </section>
 
+  <section id="v22">
+    <div class="head"><h2>v22</h2><span class="tag current">current</span><span class="muted">2026-11-18 · proof of concept first</span></div>
+    <div class="tablebox"><table>
+      <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td><span class="kind add">decided</span></td><td>Proof of concept first: projects run through the event-driven job pool (engine, workers, job types up to key info extraction, PostgreSQL, Redis, files on local disk), started from the command line, measured against the golden dataset</td><td>Andreas, 2026-11-18: prove the processing works and is used as intended before building a platform stack; the pipeline is the core business and independent of access control</td></tr>
+        <tr><td><span class="kind del">deferred</span></td><td>Not in the proof of concept: api, frontend, login and access, encryption, object storage product, deployment</td><td>Andreas, 2026-11-18</td></tr>
+        <tr><td><span class="kind chg">reopened</span></td><td>Object storage product (A6) and encryption: decisions for Thomas; the earlier proposals stay as proposals. MinIO community images are no longer published (checked 2026-11-18)</td><td>Andreas, 2026-11-18</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
   <section id="v21">
-    <div class="head"><h2>v21</h2><span class="tag current">current</span><span class="muted">2026-11-18 · replaceable OCR flow, reuse from the prototype</span></div>
+    <div class="head"><h2>v21</h2><span class="tag">earlier</span><span class="muted">2026-11-18 · replaceable OCR flow, reuse from the prototype</span></div>
     <div class="tablebox"><table>
       <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
       <tbody>

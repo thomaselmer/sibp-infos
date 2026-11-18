@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 21 · 2026-11-18 · Task T-3
+Status: **draft** · Version 22 · 2026-11-18 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -28,6 +28,14 @@ Markers: **Decided** (name, date) · **Suggestion** (not decided) · **Open** (s
   - **Integration seam:** the unit gets the current user and the project from a small identity interface. Until A8,
     a stub returns one development user with access to every project; no login. Row Level Security and the
     encryption wrappers are already called through this seam, so integration replaces the stub, not the callers.
+- **Proof of concept first** (Andreas, 2026-11-18): before any platform stack, a proof of concept shows that projects
+  run through the event-driven job pool and that the results are good enough (measured against the golden dataset).
+  The data pipeline is the core business and is independent of who may use it.
+  - In the proof of concept: engine, job pool, workers and the job types up to key info extraction, with PostgreSQL
+    and Redis; files on the local disk behind a small file interface; started from the command line on a folder.
+  - Not in the proof of concept: api, frontend, login and access, encryption, object storage product, deployment.
+  - **Object storage and encryption are Thomas's decisions** (Andreas, 2026-11-18); sections 8 and 9 hold the
+    current proposal until he decides.
 
 ## 2. Quality goals
 
@@ -319,8 +327,9 @@ MVP starts with engineering offices (D17); HEIC is not listed in V01 and would b
 - PostgreSQL with pgvector (Andreas, 2026-11-17, same stack as the prototype); embeddings per page and per key info
   (data model v15, v16).
 - Files and page images live in S3-compatible object storage; workers read and write there directly (A5).
-- **MinIO in every environment** (Andreas, 2026-11-18, A6), self-run in Docker Compose; code speaks only the S3 API.
-  Replication and backups of the files are our job.
+- **Open, Thomas decides** (Andreas, 2026-11-18): the object storage product. Proposed so far: MinIO in every
+  environment (A6), but its community Docker images are no longer published (checked 2026-11-18); alternatives such
+  as Garage or SeaweedFS speak the same S3 API. Code speaks only the S3 API; replication and backups are our job.
 - **Decided** (Andreas, 2026-11-18, A7): key layout `projects/<project>/files/…`, `projects/<project>/pages/…`.
   Projects are shared and transferred between tenants (D05, D10), so the prefix is the project, not a tenant;
   deleting a project deletes its prefix; MinIO policies can be set per prefix.
@@ -341,7 +350,8 @@ tenant).
 
 ### Encryption seam
 
-**Decided** (Andreas, 2026-11-18): **plain text during development, behind empty wrappers.** All content passes
+**Open, Thomas decides** (Andreas, 2026-11-18); not part of the proof of concept. Proposal so far: **plain text
+during development, behind empty wrappers.** All content passes
 through wrappers that will handle encryption later; today they pass data through unchanged.
 
 | Wrapper | Wraps | Today | Later (per-project keys) |
