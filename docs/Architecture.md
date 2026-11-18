@@ -2,8 +2,8 @@
 
 Status: **draft** · Version 1 · 2026-11-18 · Task T-3
 
-Single end result: this file always shows the current architecture. How it got here is in the
-[history](#history) at the end. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
+Final result only: this file always shows the current architecture. How it got here (versions, decisions,
+reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
 (referenced by its IDs, e.g. D17, V04).
 
 Markers: **Decided** (name, date) · **Suggestion** (not decided) · **Open** (see [Open decisions](#open-decisions)).
@@ -143,9 +143,3 @@ Worked through one at a time, in this order (later ones depend on earlier ones).
 | A11 | Rulebooks (Pfade) as configuration | A1 |
 | A12 | Observability stack | A2 |
 | A13 | Testing and measuring processing quality without labelled data (A07) | A4, A5 |
-
-## History
-
-| Version | Date | Change | Who |
-|---|---|---|---|
-| 1 | 2026-11-18 | First draft: scope, quality goals, context; processing runtime decisions taken over from the data model (section "Architecture, not ER model", v22–v31); list of open decisions | Andreas (scope, format), Claude (draft) |

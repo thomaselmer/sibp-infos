@@ -1,0 +1,113 @@
+<title>paragraph82b Architecture</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column; version header, change list, then diagrams newest first, each scrolling sideways in its own frame */
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --fg: #16202c;
+  --muted: #5b6878;
+  --line: #d7dde5;
+  --accent: #2f5d8a;
+  --add: #1f7a4d;
+  --chg: #9a6200;
+  --del: #a3352f;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11161d; --surface: #18202a; --fg: #e4e9ef; --muted: #98a5b4; --line: #2c3743;
+    --accent: #7fb0e0; --add: #5cc391; --chg: #e0b048; --del: #ee8a83; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11161d; --surface: #18202a; --fg: #e4e9ef; --muted: #98a5b4; --line: #2c3743;
+  --accent: #7fb0e0; --add: #5cc391; --chg: #e0b048; --del: #ee8a83; color-scheme: dark;
+}
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 32px 64px;
+}
+.wrap { max-width: 1100px; margin: 0 auto; display: grid; gap: 40px; }
+header { display: grid; gap: 8px; }
+h1 { font-size: 1.75rem; font-weight: 600; margin: 0; text-wrap: balance; }
+h2 { font-size: 1.2rem; font-weight: 600; margin: 0; text-wrap: balance; }
+p { margin: 0; max-width: 68ch; }
+.muted { color: var(--muted); }
+.eyebrow { font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+nav { display: flex; flex-wrap: wrap; gap: 8px; }
+nav a { font-family: var(--font-mono); font-size: 0.85rem; color: var(--accent); text-decoration: none; border: 1px solid var(--line); border-radius: 4px; padding: 4px 10px; background: var(--surface); }
+nav a:hover, nav a:focus-visible { border-color: var(--accent); outline: none; }
+section { display: grid; gap: 14px; min-width: 0; }
+.head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.tag { font-family: var(--font-mono); font-size: 0.75rem; padding: 1px 8px; border-radius: 3px; border: 1px solid var(--line); color: var(--muted); }
+.tag.current { color: var(--add); border-color: var(--add); }
+table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+.tablebox { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--line); }
+tr:last-child td { border-bottom: 0; }
+th { font-weight: 500; color: var(--muted); font-size: 0.8rem; letter-spacing: 0.04em; text-transform: uppercase; }
+td code, li code { font-family: var(--font-mono); font-size: 0.86em; }
+.kind { font-family: var(--font-mono); font-size: 0.78rem; font-weight: 500; white-space: nowrap; }
+.kind.add { color: var(--add); } .kind.chg { color: var(--chg); } .kind.del { color: var(--del); }
+.diagram { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); padding: 16px; }
+.diagram pre.mermaid { margin: 0; min-width: 900px; background: transparent; }
+ol, ul { margin: 0; padding-left: 1.3em; display: grid; gap: 6px; max-width: 75ch; }
+footer { font-size: 0.85rem; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+<div class="wrap">
+  <header>
+    <span class="eyebrow">paragraph82b · clean start · draft</span>
+    <h1>Architecture</h1>
+    <p class="muted">How the software architecture came about: versions, decisions and reasons, newest first. The current result is <code>docs/Architecture.md</code> in the main repository.</p>
+    <nav aria-label="Sections">
+      <a href="#open">Open decisions</a>
+      <a href="#v1">v1</a>
+    </nav>
+  </header>
+
+  <section id="open">
+    <div class="head"><h2>Open decisions</h2><span class="tag">order of work</span></div>
+    <div class="tablebox"><table>
+      <thead><tr><th>ID</th><th>Decision</th><th>Depends on</th><th>State</th></tr></thead>
+      <tbody>
+        <tr><td><code>A1</code></td><td>System shape: modular monolith vs services; containers; module boundaries</td><td>–</td><td>next</td></tr>
+        <tr><td><code>A2</code></td><td>Hosting and deployment (EU), environments</td><td>A1</td><td>open</td></tr>
+        <tr><td><code>A3</code></td><td>LLM and embedding providers, EU data residency</td><td>A2</td><td>open</td></tr>
+        <tr><td><code>A4</code></td><td>LLM integration layer: LangChain/LangGraph vs own thin layer (D19)</td><td>A3</td><td>open</td></tr>
+        <tr><td><code>A5</code></td><td>Orchestrator and worker runtime, job transport, worker inputs</td><td>A1</td><td>open</td></tr>
+        <tr><td><code>A6</code></td><td>File and image storage</td><td>A2</td><td>open</td></tr>
+        <tr><td><code>A7</code></td><td>Tenant separation and confidentiality measures</td><td>A1</td><td>open</td></tr>
+        <tr><td><code>A8</code></td><td>Authentication, roles, feature flags (four dimensions, D06)</td><td>A7</td><td>open</td></tr>
+        <tr><td><code>A9</code></td><td>Frontend–backend API and live progress</td><td>A1, A5</td><td>open</td></tr>
+        <tr><td><code>A10</code></td><td>Report and checklist generation (PDF, branding)</td><td>A1</td><td>open</td></tr>
+        <tr><td><code>A11</code></td><td>Rulebooks (Pfade) as configuration</td><td>A1</td><td>open</td></tr>
+        <tr><td><code>A12</code></td><td>Observability stack</td><td>A2</td><td>open</td></tr>
+        <tr><td><code>A13</code></td><td>Testing and measuring processing quality without labelled data (A07)</td><td>A4, A5</td><td>open</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="v1">
+    <div class="head"><h2>v1</h2><span class="tag current">current</span><span class="muted">2026-11-18 · first draft</span></div>
+    <div class="tablebox"><table>
+      <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td><span class="kind add">decided</span></td><td>Scope: MVP, platform-wide (D17), with the extension points D17 names; processing in the most depth</td><td>Andreas, 2026-11-18</td></tr>
+        <tr><td><span class="kind add">decided</span></td><td>Format: <code>Architecture.md</code> holds only the final result; this page holds the history and is published as an artifact. Same for the data model</td><td>Andreas, 2026-11-18</td></tr>
+        <tr><td><span class="kind add">new</span></td><td>Quality goals from the concept: confidentiality, fault tolerance, transparency, iterative and non-blocking, scale and cost, EU/GDPR, extensibility</td><td>D02, D06, D11, D13, D14, D17, D27, A05</td></tr>
+        <tr><td><span class="kind add">new</span></td><td>Context: engineering office users and platform admin; LLM provider; operations monitoring; QM App and payment later</td><td>D14, D17</td></tr>
+        <tr><td><span class="kind chg">moved</span></td><td>Processing runtime decisions taken over from the data model's parked section "Architecture, not ER model" and v22–v31: event-driven job pool, one orchestrator per project, stored events consumed in one transaction, generic engine plus job type definitions, follow-up candidates, concurrency rule, jobs without database access and batch writes, failures and retries, restart, consistency check, "Apply changes"</td><td>Andreas, 2026-11-17; how the software works belongs here, not in the data model</td></tr>
+        <tr><td><span class="kind chg">moved</span></td><td>Observability: EVENT table for users and the orchestrator, separate log/metrics store for operations, no customer content in monitoring</td><td>Andreas, 2026-11-17; D06, D14</td></tr>
+        <tr><td><span class="kind add">new</span></td><td>List of open decisions A1–A13, worked through one at a time</td><td>Andreas, 2026-11-18: step by step with decisions</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <footer class="muted">Markers in the result: decided (name, date) · suggestion (not decided) · open.</footer>
+</div>
