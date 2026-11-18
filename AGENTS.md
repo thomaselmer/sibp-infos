@@ -56,6 +56,7 @@ This file states the rules for agents completely. Decisions with background are 
 - Agents work on the branch of the person they work for, or on feature branches created from it. Push, merge and
   commit attribution follow that person's choice; ask them when it is not known.
 - Never commit to `dev`, `main` or another person's branch.
+- The source submodule follows the same Git rules (`dev` from `main`, personal branches from `dev`).
 
 ## Architecture
 - Modular monolith: one Python codebase, run as the processes `api`, `orchestrator` and `worker`; modules use

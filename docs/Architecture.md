@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 20 · 2026-11-18 · Task T-3
+Status: **draft** · Version 21 · 2026-11-18 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -265,6 +265,13 @@ sequenceDiagram
 | embed_page, embed_keyinfo | embedding model |
 | find_sections, classify_document, extract_keyinfos | text model |
 | ingest_file, decide_border, assemble_document, duplicate checks, check_reference_numbers | no model (code), unless decided otherwise per job type |
+
+- **ocr_page flow can be replaced** (Andreas, 2026-11-18): for now one vision flow. The job type's inputs and result
+  stay fixed, so the flow inside can change later without touching the orchestrator, e.g. a classic OCR pipeline
+  first and a vision agent only when it fails or its result is insufficient (e.g. handwriting).
+- **Reuse from the prototype** (Andreas, 2026-11-18): job logic (e.g. OCR) is taken from `paragraph-82b-prototype`
+  and reworked to fit this architecture; only the functionality is taken, integrated where it fits. Prompts that work
+  are kept as they are.
 
 Consequences and guidelines:
 - **Embeddings:** the vector size is fixed per column; changing the embedding model means re-embedding every page and
