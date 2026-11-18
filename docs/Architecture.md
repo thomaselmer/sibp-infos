@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 23 · 2026-11-18 · Task T-3
+Status: **draft** · Version 24 · 2026-11-18 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -168,15 +168,20 @@ Decided so far (data model, section "Architecture, not ER model", and versions v
 - **Concurrency rule:** a job starts only when none of its write targets is used by a running job and none of its
   read targets is being written (JOB_TARGET read/write).
 - **Jobs do not touch the database.** A job's task returns its own typed result; the orchestrator collects results
-  and writes them in batches (Andreas, 2026-11-17). Finishing a job (write results, set done, record the event) is
-  one transaction (v28).
+  and writes them in batches (Andreas, 2026-11-17). Finishing a job (write results, set done, create follow-up
+  jobs) is one transaction (v28).
+- **Two sources of jobs** (Andreas, 2026-11-18): an engine consumes a user event (sets `processed_at`; the event
+  stays as history) or writes a job result; in both cases the trigger, its effects and the new jobs are one
+  transaction, so a crash never leaves half a state.
+- **EVENT holds user actions and events that mean something to the user** (e.g. document built, note raised), not
+  "job done": the JOB row already says that, and follow-ups come straight from the result (Andreas, 2026-11-18).
 - **Failures** (Andreas, 2026-11-17, v23): a temporary failure is retried at once with a higher timeout; if that
   fails, it is lasting — job failed, a note on the failed object, new jobs only after user input. A failure never
   blocks other jobs; jobs that depend on missing or invalid data do not start.
-- **Restart** (v28): running jobs go back to queued (attempt + 1); a worker without heartbeat is treated the same.
-  Token usage of a crashed attempt may be lost.
+- **Restart** (v28): jobs that were in the pool go back to queued (attempt + 1); a job whose lease expired is
+  treated the same. Token usage of a crashed attempt may be lost.
 - **Consistency check** (v29): from time to time (e.g. when a project is idle) waiting jobs must still wait for
-  something and running jobs must have a live worker; findings go to monitoring.
+  something and jobs in the pool must be in Redis; findings go to monitoring.
 - **User changes** are collected and processed on "Apply changes", like "Start run" (Andreas, 2026-11-17).
 - **Job types** up to key info extraction: see `Data_Model.md`, "Job types".
 
@@ -187,8 +192,21 @@ Decided so far (data model, section "Architecture, not ER model", and versions v
 - **Many projects per orchestrator process.** An `orchestrator` process hosts one engine per active project (an
   asyncio task). A project is claimed exclusively through a PostgreSQL lock, so several orchestrator processes can
   share the projects and one takes over after another crashed. Idle projects are unloaded.
+- **Names** (Andreas, 2026-11-18): the **engine** is the logic of one project; the **orchestrator** is the process
+  that hosts many engines and knows no project logic.
+- **The orchestrator process** (Andreas, 2026-11-18) only does operations:
+  1. **wakes engines:** PostgreSQL reports each new user event at once (`LISTEN/NOTIFY`); if no engine holds the
+     project, the process claims it and starts its engine; a check every few seconds catches missed reports;
+  2. **unloads engines** of projects with nothing to do: no unconsumed event, no job in the pool, no waiting job
+     that could run now. Jobs that wait for user input (e.g. after a failure) do not keep an engine alive;
+  3. **reaps expired leases** and hands them to the project's engine (attempt + 1);
+  4. **reads the result streams** of its engines in one Redis call (a shortcut only).
+- **Distributed:** orchestrator processes and workers run on any servers; they need the same PostgreSQL and Redis,
+  workers also the file store. The project lock is a PostgreSQL advisory lock bound to the process's connection,
+  so it is released when the process or its connection dies. An engine that loses its connection or lock stops at
+  once. Each process takes at most a configured number of engines, so load spreads without a central scheduler.
 - **Redis as message channel.** The engine puts runnable jobs with their inputs into Redis lane queues; workers take
-  them, send heartbeats and post typed results to a result stream that the engines read. A job taken but not
+  them, send heartbeats and post typed results to the project's result stream. A job taken but not
   acknowledged by a dead worker goes back to queued (restart rule above). Details below.
 - **Large inputs through object storage.** A job message holds ids, texts and object-storage keys. The worker reads
   images straight from object storage and saves new files there (e.g. a turned page), returning the key in its
@@ -224,14 +242,22 @@ sequenceDiagram
 
 | Place | Holds | Purpose |
 |---|---|---|
-| JOB table (PostgreSQL) | all jobs of all projects in every status, with project_id | source of truth, restart, progress |
+| JOB table (PostgreSQL) | all jobs of all projects, status waiting, queued, done or failed, with project_id and priority | source of truth, restart, progress |
 | lane queues (Redis) | only runnable jobs of all projects, one sorted queue per lane | what workers take from |
-| result streams (Redis) | one per orchestrator process | results back to the engine holding the project |
+| result streams (Redis) | one per project (`results:<project_id>`) | results back to the project's engine |
 
 - **One shared pool.** Workers belong to no project and no orchestrator; they take whatever runnable job comes next,
-  so they work where most is needed. A job message carries project_id, job type and the result stream of the
-  orchestrator process that holds the project; the worker posts its result there. A late result for an orchestrator
-  that died is lost; the job runs again under the new owner (restart rule).
+  so they work where most is needed. A job message carries project_id and job type; the worker posts its result to
+  the project's result stream. When another orchestrator process takes the project over, its engine reads the same
+  stream on, so no result is lost (Andreas, 2026-11-18).
+- **Running is known in Redis only** (Andreas, 2026-11-18): the engine does not see when a worker takes a job, and
+  workers do not write to the database. A job in a lane's in-flight set is running; the result carries
+  `started_at`, `worker_id` and the duration, written with the result. No heartbeat writes to the database.
+- **Lost lease** (Andreas, 2026-11-18): a live worker that reaches Redis always keeps its lease; the heartbeat runs
+  apart from the work (heavy work in a thread), so it is never blocked. A worker that cannot extend its lease stops
+  that job and sends no result. The engine accepts only results of the job's current attempt. Each attempt writes its
+  files under its own name (e.g. `pages/<page>/<job>-<attempt>.png`); files nothing points to are removed by a
+  clean-up when the project is idle.
 - **Lanes per model.** Each model configured for a job type (section 6) has its own lane; job types without a model
   call share the lane `code`. Switching a job type's model moves its jobs to that model's lane.
 - **Sorted queue per lane** (Redis sorted set). The rank is priority first, then time. Jobs from "Apply changes" get
@@ -316,6 +342,11 @@ MVP starts with engineering offices (D17); HEIC is not listed in V01 and would b
 - **Live progress with Server-Sent Events.** The browser opens one event stream per open project; the api pushes
   progress (e.g. pages read, documents built, key infos found, from the JOB table) whenever the orchestrator reports
   a change through Redis. One direction is enough for progress.
+- **Progress shown per stage, plus remaining time** (Andreas, 2026-11-18): exact counts where the total is known
+  (files, pages for OCR, embeddings and borders, documents found so far for their evaluation), growing counts where
+  it is not (documents found, key infos found); no single percentage. Remaining time ≈ open pages × seconds per page
+  (per job type, from quality runs) ÷ parallel workers, shown once measured values exist. Counts come from JOB
+  (done, queued, waiting) and Redis (running).
 - **Uploads straight to MinIO** (A9c; Andreas, 2026-11-18, left the choice to the recommendation):
   1. the frontend asks the api for upload slots (file names, sizes, types); the api checks access, allowed formats
      and the page quota and returns short-lived signed upload URLs (multipart for large files);
