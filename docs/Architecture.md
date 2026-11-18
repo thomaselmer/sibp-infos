@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 11 · 2026-11-18 · Task T-3
+Status: **draft** · Version 12 · 2026-11-18 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -274,7 +274,30 @@ Consequences and guidelines:
   counts token usage several times (seen in the prototype).
 - Quality and cost per job type are compared on test data before a model is switched (A13).
 
-## 7. Data and storage
+## 7. Frontend and API
+
+**Optical reference** (Andreas, 2026-11-18): the shared Claude mockup "paragraph82b MVP Stufe 4" (minimal version;
+https://claude.ai/artifact/QjvAQ6coECAhNYDWzpDuH8). A fuller version exists ("paragraph82b Mein Betrieb", prototype
+v1); it is not the reference now. For the processing unit two of its pages matter:
+
+| Page | Shows |
+|---|---|
+| Unterlagen hochladen | page quota (used of available, warnings near or over the limit; a photo counts one page, a PDF its pages); drop zone for several photos or PDFs at once (incl. HEIC) with upload progress; table "Ihre Uploads": upload, kind and files, pages, uploaded at, status "bereit zur Verarbeitung" |
+| Verarbeitung und Ablage | notice "Neue Unterlagen bereit" with "Verarbeitung starten" (a run starts only on this button, matching "Start run"); progress "Verarbeitung läuft …"; figures (pages, documents, Bescheide, Auflagen, plans, Prüfbefunde), last run finished at and duration; "Dokumente nach Ablage", read-only, grouped by document kind, each with title, date, issuer, source upload, marks "neu" and "nur Information" |
+
+Notes from the mockup, for later: it is made for the package "Mein Betrieb" (single businesses), while the concept's
+MVP starts with engineering offices (D17); HEIC is not listed in V01 and would be converted on ingest.
+
+**Decided** (Andreas, 2026-11-18, A9):
+- **REST with OpenAPI.** FastAPI describes every endpoint in OpenAPI; the frontend uses a TypeScript client generated
+  from it, so types stay in sync. User actions are POST requests that store events (e.g. "Verarbeitung starten" →
+  start_run, data model "User actions on the job pool").
+- **Live progress with Server-Sent Events.** The browser opens one event stream per open project; the api pushes
+  progress (e.g. pages read, documents built, key infos found, from the JOB table) whenever the orchestrator reports
+  a change through Redis. One direction is enough for progress.
+- **Open** (A9c): upload path — straight to MinIO with short-lived signed upload URLs, or through the api.
+
+## 8. Data and storage
 
 - PostgreSQL with pgvector (Andreas, 2026-11-17, same stack as the prototype); embeddings per page and per key info
   (data model v15, v16).
@@ -293,7 +316,7 @@ Consequences and guidelines:
   - The data model leaves tenants out of its current scope; TENANT and the project's link to tenants are added there
     later.
 
-## 8. Security and confidentiality
+## 9. Security and confidentiality
 
 Principles from D06 (platform admins see no customer content, time-limited support access with customer consent,
 every access logged and visible to the customer, real loss of access after revocation, later encryption per
@@ -332,7 +355,7 @@ through wrappers that will handle encryption later; today they pass data through
 
 **Open** (A8): authentication and roles in detail.
 
-## 9. Observability
+## 10. Observability
 
 - Two separate stores (Andreas, 2026-11-17): EVENT table = project history for users and the orchestrator's input;
   a log/metrics store for the operator across projects (job durations, failure rates, retries, queue length, worker
@@ -340,7 +363,7 @@ through wrappers that will handle encryption later; today they pass data through
 - Monitoring holds only ids, counts and durations, no customer content (D06).
 - **Open** (A12): concrete stack (the data model names Grafana as an example).
 
-## 10. Deployment and environments
+## 11. Deployment and environments
 
 **Decided** (Andreas, 2026-11-18, A2; ADR-paragraph-82b-0005): **containers on rented servers of a European
 provider**, run with Docker Compose, as in the prototype. No US cloud provider holds customer data.
@@ -385,7 +408,7 @@ Worked through one at a time. Needed for the processing unit first; the rest wai
 
 | ID | Decision | Depends on | When |
 |---|---|---|---|
-| A9 | Frontend–backend API and live progress (for the processing unit) | A1 | now |
+| A9c | Upload path: straight to MinIO with signed URLs, or through the api | A1 | now |
 | A13 | Testing and measuring processing quality without labelled data (A07) | — | now |
 | A12 | Observability stack | A2 | now (minimal) |
 | A8 | Authentication, roles, feature flags (four dimensions, D06); Entra ID matters, a self-hosted broker such as Keycloak or Zitadel was discussed | A7 | after the processing unit |

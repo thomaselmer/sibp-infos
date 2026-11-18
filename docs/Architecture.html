@@ -67,6 +67,7 @@ footer { font-size: 0.85rem; }
     <p class="muted">How the software architecture came about: versions, decisions and reasons, newest first. The current result is <code>docs/Architecture.md</code> in the main repository.</p>
     <nav aria-label="Sections">
       <a href="#open">Open decisions</a>
+      <a href="#v12">v12</a>
       <a href="#v11">v11</a>
       <a href="#v10">v10</a>
       <a href="#v9">v9</a>
@@ -94,7 +95,7 @@ footer { font-size: 0.85rem; }
         <tr><td><code>A6</code></td><td>Object storage details: provider, local setup, key layout, encryption, retention (object storage itself decided in v5)</td><td>A2</td><td>decided v8 (key layout and retention still open)</td></tr>
         <tr><td><code>A7</code></td><td>Tenant separation and confidentiality measures</td><td>A1</td><td>decided v10</td></tr>
         <tr><td><code>A8</code></td><td>Authentication, roles, feature flags (four dimensions, D06)</td><td>A7</td><td>deferred v11</td></tr>
-        <tr><td><code>A9</code></td><td>Frontend–backend API and live progress</td><td>A1, A5</td><td>next</td></tr>
+        <tr><td><code>A9</code></td><td>Frontend–backend API and live progress</td><td>A1, A5</td><td>decided v12 (upload path A9c open)</td></tr>
         <tr><td><code>A10</code></td><td>Report and checklist generation (PDF, branding)</td><td>A1</td><td>deferred v11</td></tr>
         <tr><td><code>A11</code></td><td>Rulebooks (Pfade) as configuration</td><td>A1</td><td>deferred v11</td></tr>
         <tr><td><code>A12</code></td><td>Observability stack</td><td>A2</td><td>open</td></tr>
@@ -103,8 +104,24 @@ footer { font-size: 0.85rem; }
     </table></div>
   </section>
 
+  <section id="v12">
+    <div class="head"><h2>v12</h2><span class="tag current">current</span><span class="muted">2026-11-18 · A9 frontend and API</span></div>
+    <div class="tablebox"><table>
+      <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td><span class="kind add">decided</span></td><td>Optical reference: shared Claude mockup "paragraph82b MVP Stufe 4" (minimal version); pages "Unterlagen hochladen" and "Verarbeitung und Ablage" described in the new section 7</td><td>Andreas, 2026-11-18: the minimal version first; the fuller "Mein Betrieb" prototype is not the reference now</td></tr>
+        <tr><td><span class="kind add">decided</span></td><td>REST with OpenAPI; TypeScript client generated from it; user actions are POSTs that store events (e.g. "Verarbeitung starten" → start_run)</td><td>Andreas, 2026-11-18. Types stay in sync between FastAPI and Next.js</td></tr>
+        <tr><td><span class="kind add">decided</span></td><td>Live progress with Server-Sent Events: one stream per open project; the api pushes progress when the orchestrator reports a change through Redis</td><td>Andreas, 2026-11-18. One direction is enough for progress</td></tr>
+        <tr><td><span class="kind chg">open</span></td><td>A9c upload path: straight to MinIO with signed URLs, or through the api</td><td>Not answered yet</td></tr>
+        <tr><td><span class="kind chg">open</span></td><td>From the mockup: made for "Mein Betrieb" while the concept's MVP starts with engineering offices (D17); HEIC uploads are not in V01 and would be converted on ingest</td><td>Noted for later</td></tr>
+        <tr><td><span class="kind del">rejected</span></td><td>GraphQL; WebSocket; polling</td><td>More setup than needed; two-way not needed for progress; delayed and more load</td></tr>
+        <tr><td><span class="kind chg">changed</span></td><td>Sections renumbered: new section 7 "Frontend and API"</td><td>Readability</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
   <section id="v11">
-    <div class="head"><h2>v11</h2><span class="tag current">current</span><span class="muted">2026-11-18 · processing unit first</span></div>
+    <div class="head"><h2>v11</h2><span class="tag">earlier</span><span class="muted">2026-11-18 · processing unit first</span></div>
     <div class="tablebox"><table>
       <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
       <tbody>
