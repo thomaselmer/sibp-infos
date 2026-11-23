@@ -14,6 +14,14 @@ A person who works in the application.
 **Project access** (Zugriff, D43):
 The right of a user to work on a project.
 
+**Tier** (Paket; the concept's Plan, D16, is booked by a tenant):
+What a project may use: storage for uploads and the pages read (planned pages plus a margin). Pages beyond are kept
+but not read until the project moves to a larger tier.
+_Avoid_: plan (the tenant's booking), quota (for the tier itself)
+
+**Page limit** (Seitenkontingent):
+The pages a project's tier lets it read: planned pages plus margin, counted in upload order.
+
 ## Akt
 
 **File** (Datei):

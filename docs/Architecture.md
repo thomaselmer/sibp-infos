@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 32 · 2026-11-23 · Task T-3
+Status: **draft** · Version 33 · 2026-11-23 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -158,11 +158,13 @@ the sections, decisions and concept IDs here (Andreas, 2026-11-23). Paths are re
 
 | Code | Sections, decisions, concept |
 |---|---|
-| `backend/app/platform/files.py` | sections 1 and 9 (one file interface, encryption seam), section 8 |
+| `backend/app/platform/files.py` | sections 1 and 9 (one file interface, encryption seam), section 8 (Garage), section 7 (signed URLs) |
+| `backend/app/modules/projects/` | section 7 (tiers limit a project), data model (TIER) |
 | `backend/app/platform/logging.py` | section 10 |
 | `backend/app/modules/identity/` | section 1 (stub user until login), A8 |
 | `backend/app/modules/akt/` | data model (files, pages, documents, sections, reference numbers) |
-| `backend/app/modules/akt/pages.py` | V01 (accepted formats), section 7 (upload limits) |
+| `backend/app/modules/akt/pages.py` | V01 (accepted formats), section 7 (upload limits per file) |
+| `config/garage.toml`, `docker-compose.yaml` | section 8 (Garage) |
 | `backend/app/modules/notes/events.py` | section 5 (user events wake the orchestrator) |
 | `backend/app/modules/processing/jobs/` | section 4 (job type split by role) |
 | `backend/app/modules/processing/models.py` | data model (job tables) |
@@ -171,7 +173,7 @@ the sections, decisions and concept IDs here (Andreas, 2026-11-23). Paths are re
 | `backend/app/pipeline/ingest.py` | data model (job types: ingest_file) |
 | `backend/app/pipeline/ocr.py` | data model (job types: ocr_page), V03 |
 | `backend/app/modules/ai/` | section 6 (models, providers, fallbacks), A3, A4; `flows/ocr_page.py`: V03, D04 (document kinds), prompt from the prototype |
-| `backend/app/pipeline/runs.py` | data model (user actions: start_run) |
+| `backend/app/pipeline/runs.py` | data model (user actions: start_run), section 7 (page limit of the tier) |
 | `backend/app/api/` | section 7, A9 and A9c (upload path), V01 (rejections reported together); permissions in T-4 step 4 |
 | `frontend/lib/api.ts` | section 7 (hand-written types until generated from OpenAPI) |
 
@@ -426,7 +428,7 @@ v1); it is not the reference now. For the processing unit two of its pages matte
 
 | Page | Shows |
 |---|---|
-| Unterlagen hochladen | page quota (used of available, warnings near or over the limit; a photo counts one page, a PDF its pages); drop zone for several photos or PDFs at once (incl. HEIC) with upload progress; table "Ihre Uploads": upload, kind and files, pages, uploaded at, status "bereit zur Verarbeitung" |
+| Unterlagen hochladen | page quota of the tier (used of available, storage used, warnings near or over the limit; a photo counts one page, a PDF its pages); drop zone for several photos or PDFs at once (incl. HEIC) with upload progress; table "Ihre Uploads": upload, kind and files, pages, uploaded at, status "bereit zur Verarbeitung" |
 | Verarbeitung und Ablage | notice "Neue Unterlagen bereit" with "Verarbeitung starten" (a run starts only on this button, matching "Start run"); progress "Verarbeitung läuft …"; figures (pages, documents, Bescheide, Auflagen, plans, Prüfbefunde), last run finished at and duration; "Dokumente nach Ablage", read-only, grouped by document kind, each with title, date, issuer, source upload, marks "neu" and "nur Information" |
 
 Notes from the mockup, for later: it is made for the package "Mein Betrieb" (single businesses), while the concept's
@@ -444,25 +446,50 @@ MVP starts with engineering offices (D17); HEIC is not listed in V01 and would b
   it is not (documents found, key infos found); no single percentage. Remaining time ≈ open pages × seconds per page
   (per job type, from quality runs) ÷ parallel workers, shown once measured values exist. Counts come from JOB
   (done, queued, waiting) and Redis (running).
-- **Uploads straight to object storage** (A9c; Andreas, 2026-11-18, left the choice to the recommendation):
-  1. the frontend asks the api for upload slots (file names, sizes, types); the api checks access, allowed formats
-     and the page quota and returns short-lived signed upload URLs (multipart for large files);
-  2. the browser uploads straight to Garage under `projects/<project>/files/…`, showing progress per file;
-  3. the frontend confirms the upload; the api registers FILE (type, size, content hash, upload position), counts the
-     pages (a photo one page, a PDF its pages) and sets the status "bereit zur Verarbeitung". Unsupported or
-     unreadable files are rejected with one collected notice per upload (V01) and deleted from Garage.
+- **Uploads straight to object storage** (A9c; Andreas, 2026-11-18, left the choice to the recommendation; built
+  2026-11-23, T-8):
+  1. the frontend asks the api for upload slots (file names, sizes, types); the api checks access, allowed formats,
+     the size per file and the storage of the project's tier, adds a pending FILE per accepted file (in the order
+     chosen, which is the upload order) and returns a short-lived signed upload URL per file. Files are taken in order
+     while the storage lasts; the rest is rejected, so the order is never broken;
+  2. the browser uploads straight to Garage under `projects/<project>/files/…`, a few files at once, with progress.
+     The signed URL accepts exactly the declared size and type (Garage refuses anything else, checked 2026-11-23);
+     the bucket's CORS rule admits only the frontend's origin (set by the api on start);
+  3. the frontend confirms each file; the api compares the stored size with the declared one, reads the file, counts
+     its pages (a photo one page, a PDF its pages), stores the content hash and sets it ready ("bereit zur
+     Verarbeitung"). Unsupported or unreadable files are rejected with one collected notice per upload (V01) and
+     deleted from Garage. Only ready files are processed.
+  - One signed PUT per file; multipart only when files get larger than one request handles well.
+  - Pending uploads count against the storage from the moment their URL is handed out, so unconfirmed uploads
+    cannot exceed it. **Open:** removing pending files that are never confirmed (with the cleanup of unreferenced
+    files).
+  - Page images are shown the same way: the api redirects to a short-lived signed URL.
   - The api is never blocked by large files.
   - Exception to the wrapper rule (section 9): the browser writes the original upload around the file store wrapper.
     Once encryption is built, `ingest_file` rewrites the original through the wrapper (read, encrypt, replace) before
     anything else reads it; until then nothing changes, since the wrappers pass data through.
-- **Upload limits** (Andreas, 2026-11-23, from the code review): at most 200 MB per file; 2 GB and 500 files per
-  upload request (the files chosen at once, checked by the declared size before the body is read; larger Akten are
-  uploaded in several requests; the limit per project is the page quota); 2,000 pages per PDF; 100 megapixels per
-  photo. Rejected files get their own reason (V01). Pages above 50 megapixels are rendered smaller, not rejected
-  (A4 at 150 DPI is about 2 megapixels, A0 about 35). Pages are rendered and stored one at a time; parsing, hashing,
-  rendering and file writes run apart from the event loop.
-- **For now, in the proof of concept** (2026-11-18, T-4): until Garage is built in (section 8), uploads go
-  through the api into the local file store; the status stream checks the database once a second instead of
+- **Upload limits per file** (Andreas, 2026-11-23; in `config/<environment>.yaml`, the same for every tier, since
+  they protect the system): at most 200 MB per file, 2,000 pages per PDF, 100 megapixels per photo. Rejected files
+  get their own reason (V01). Pages above 50 megapixels are rendered smaller, not rejected (A4 at 150 DPI is about 2
+  megapixels, A0 about 35). Pages are rendered and stored one at a time; parsing, hashing, rendering and file writes
+  run apart from the event loop. The earlier limits per upload request (2 GB, 500 files) are gone with the upload
+  through the api.
+- **Tiers limit a project** (Andreas, 2026-11-23): every project has a tier (table TIER, data model), edited in the
+  database because the values will change. A tier holds the planned pages, a margin (10 %), and the storage for
+  uploads. Starting values: Basis 150, Pro 500, Enterprise 1000 planned pages; storage = page limit × 10 MB × 2
+  (about 3.3, 11 and 22 GB), enough for twice the pages as large photos, small enough that nobody can store
+  unlimited amounts. New projects get the default tier (Basis, a placeholder until plans are settled).
+  - Upload: allowed up to the storage; everything uploaded is kept.
+  - `ingest_file` splits every file, since it costs no model calls and the page count is shown.
+  - `ocr_page` reads only the first *planned pages + margin* pages in upload order (e.g. 550 for 500). A page's
+    place counts the pages of all earlier files, ingested or not, so it does not change when files are ingested
+    out of order. Pages beyond stay stored, unread.
+  - From grouping on, only pages up to the last document border within the limit go further; a document that
+    crosses the limit does not go on at all, its read pages are kept (no half document in the pipeline). Built with
+    `decide_border`; the only borders known before are file starts.
+  - A larger tier lets the next "Verarbeitung starten" read and process the rest.
+  - The pricing model itself (projects priced by maximum page count, D19; plan names, D16) is Thomas's to settle.
+- **For now, in the proof of concept** (2026-11-18, T-4): the status stream checks the database once a second instead of
   waiting for a report from the orchestrator; the TypeScript types are written by hand; no login, every request
   acts as a development user. The frontend has the two pages above, with the pages of a project shown in place of
   "Dokumente nach Ablage" until documents are built.
@@ -477,8 +504,10 @@ MVP starts with engineering offices (D17); HEIC is not listed in V01 and would b
   single sign-on; more parts to run: master, volume servers, filer with its own store, S3 gateway) and MinIO
   (community Docker images no longer published, checked 2026-11-18). Garage supports the presigned URLs the upload
   path needs; multipart uploads are stricter than Amazon's in some edge cases.
-  - **Built only when needed** (Thomas and Andreas, 2026-11-23): until then files stay in the local file store
-    behind the file interface (`FileStore`); Garage then replaces the implementation, not the callers.
+  - **Built only when needed** (Thomas and Andreas, 2026-11-23), then **built** for uploads straight from the browser
+    (Andreas, 2026-11-23, T-8): Garage v2.5.0 in Docker Compose, one node with `replication_factor = 1` locally;
+    bucket and access key are created on first start from the values in `.env`. The file interface (`FileStore`)
+    has an S3 implementation; the local-disk one remains for tests.
   - **Suggestion** (not decided): admin viewer `khairul169/garage-webui` (cluster, buckets, keys, object browser),
     reached only locally or through an SSH tunnel, never public, since it holds the admin token and shows
     confidential files. Any S3 client can browse the files as well.

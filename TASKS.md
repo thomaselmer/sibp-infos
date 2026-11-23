@@ -4,6 +4,8 @@ Progress tracker only; keeps the next session oriented. Done keeps the last 10 e
 Format and rules: "Tasks" in `AGENTS.md`.
 
 ## In progress
+- [ ] T-8 Garage with uploads straight from the browser, and tiers that limit storage and processed pages — started 2026-11-23
+  Next: built (submodule `6ac4125`, Architecture v33, data model v40); Andreas decides the default tier (Basis set as placeholder); open: removing never-confirmed uploads, the border rule once `decide_border` exists, pricing (D19) with Thomas
 - [ ] T-4 Proof of concept of the processing in the source submodule — thin slice first, measured against the golden dataset (`docs/Architecture.md`) — started 2026-11-18
   Next: job pool, ingest_file, api and frontend built; ocr_page and the stage reset (development tool) built (submodule `e5c3b95`); next: first run on the golden dataset, Andreas reviews the results and reports findings in the terminal; stage 2 fallback (result too weak) and title_* still open
 - [ ] T-3 Software architecture for the MVP, platform-wide — `docs/Architecture.md` (end result + history), decisions one by one with Andreas; data model also as `docs/Data_Model.md` — started 2026-11-18

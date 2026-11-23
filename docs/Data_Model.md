@@ -1,6 +1,6 @@
 # paragraph82b — Data Model
 
-Status: **draft** · current version **v39** · 2026-11-23
+Status: **draft** · current version **v40** · 2026-11-23
 
 Final result only: this file shows the current model. How it got here (all versions and changes) is in `Data_Model.html`, published as an artifact: https://claude.ai/artifact/EHPCd6tJNDvKj14RwmwSH6. English names, each mapped to a concept term (see `GLOSSARY.md`). How the software works (orchestrator, workers, monitoring) is in [`Architecture.md`](Architecture.md).
 
@@ -85,11 +85,12 @@ Decided (Andreas, 2026-11-23), ocr_page: it records what is on the page; groupin
 
 Decided (Andreas, 2026-11-17): page turning stays inside ocr_page; duplicate checks are separate job types per level (file, page, document). Decided (Andreas, 2026-11-17): find_sections runs before the type is known: every document first gets a root section over the whole document, then all candidate section types are looked for beneath it; what was found is reported in DOCUMENT_FEATURES, which classify_document and later steps use.
 
-## Entity-relationship diagram (v38)
+## Entity-relationship diagram (v40)
 
 ```mermaid
 erDiagram
 USER ||--o{ PROJECT : owns
+TIER ||--o{ PROJECT : limits
 USER ||--o{ PROJECT_ACCESS : receives
 PROJECT ||--o{ PROJECT_ACCESS : grants
 PROJECT ||--o{ FILE : receives
@@ -148,12 +149,21 @@ string email
 string role
 string pwd_hash
 }
+TIER {
+uuid id PK
+string name "unique, e.g. basis"
+string label "shown, e.g. Basis"
+int planned_pages
+int page_margin_percent "pages read: planned plus margin"
+bigint max_project_bytes "storage for uploads"
+bool is_default "new projects get it; exactly one"
+}
 PROJECT {
 uuid id PK
 uuid owner_user_id FK
+uuid tier_id FK
 string name
 string address
-string tier
 datetime created_at
 datetime updated_at
 datetime deleted_at
@@ -171,8 +181,10 @@ uuid uploaded_by_user_id FK "nullable"
 string file_type "image or pdf"
 string original_name "confidential"
 string path
-string content_hash
-int page_count
+bigint size_bytes "declared on upload, checked against the stored file"
+string upload_state "pending or ready"
+string content_hash "nullable until ready"
+int page_count "nullable until ready"
 int upload_position "order within the upload"
 string duplicate_state "nullable, original or duplicate"
 datetime uploaded_at
@@ -460,6 +472,8 @@ Missing fields and open decisions, table by table. Gone through on 2026-11-17; w
 | Table | Missing or undecided | Source |
 |---|---|---|
 | PROJECT, USER, TENANT | Out of scope (Andreas, 2026-11-17): tenants, plans and roles per tenant hardly affect how a project is processed, so this model leaves them out. USER, PROJECT and PROJECT_ACCESS stay as placeholders. Tenant, plan, roles and project master data (Branche, onboarding answers) are modelled separately later. | Concept D43, D05, D06, D10 |
+| TIER | Decided (Andreas, 2026-11-23): a table, edited in the database, because the values will change. A project's tier limits the storage for uploads and the pages read (planned pages plus margin); pages beyond are kept, read after a move to a larger tier. Starting values Basis 150, Pro 500, Enterprise 1000 pages, +10 %, storage page limit × 10 MB × 2. Replaces the undescribed `PROJECT.tier` text. Later a tenant's booked plan may set it. | Concept D16 (plan names, assumption), D19 (pricing by page count, open) |
+| FILE (upload state) | Decided (Andreas, 2026-11-23): the browser uploads straight to object storage; a FILE row is pending from the signed URL on and ready once the stored file is checked; only ready files are processed. | Architecture section 7 |
 | DOCUMENT | Short title: short_title, v32. Document-level duplicate: duplicate_state, v18. Empty Bescheid as document without pages: replaced by a REFERENCE_NUMBER without document, v12 | Prototype, D04 |
 | PAGE | sequence: not needed, decided in v17. Embedding: on the page, decided in v15 | A02, V03 |
 | DOCUMENT_SECTION | Decided (Andreas, 2026-11-17): section types depend on the document type. Bescheide and Verhandlungsschriften have a clear, predictable layout, so a fixed set of types is looked for (prototype: Gegenstand, Stellungnahme, Bescheid/Spruch, Auflagen, Verfahrenskosten, Rechtsmittelbelehrung, Rechtsgrundlage, …). Every document (authority or not) gets a root section over the whole document; further sections sit beneath it (Andreas, 2026-11-17). Consequence: every document has at least one section, so a key info from a document always has a source_section_id. The allowed types per document type live in the code configuration for now (Andreas, 2026-11-17). | D04, V06 |
