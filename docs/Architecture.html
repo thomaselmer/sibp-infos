@@ -72,6 +72,7 @@ footer { font-size: 0.85rem; }
     <nav aria-label="Sections">
       <a href="#picture">Current picture</a>
       <a href="#open">Open decisions</a>
+      <a href="#v31">v31</a>
       <a href="#v30">v30</a>
       <a href="#v29">v29</a>
       <a href="#v28">v28</a>
@@ -246,8 +247,20 @@ footer { font-size: 0.85rem; }
     </table></div>
   </section>
 
+  <section id="v31">
+    <div class="head"><h2>v31</h2><span class="tag current">current</span><span class="muted">2026-11-23 · raw input and expected result</span></div>
+    <div class="tablebox"><table>
+      <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td><span class="kind add">decided</span></td><td><code>P82B_INPUT_DATASET_DIR</code>: raw input files, fed through the upload path; <code>P82B_GOLDEN_DATASET_DIR</code>: the expected result; neither folder is ever written to</td><td>Andreas, 2026-11-23. The application changes only its own copies in the file store</td></tr>
+        <tr><td><span class="kind add">decided</span></td><td>The golden dataset is built up from a first run: Andreas reviews the results and reports findings in the terminal; corrections become tests first</td><td>Andreas, 2026-11-23</td></tr>
+        <tr><td><span class="kind chg">open</span></td><td>Read-only is agreed, not enforced: both folders are writable for the local user</td><td>A read-only mount would enforce it</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
   <section id="v30">
-    <div class="head"><h2>v30</h2><span class="tag current">current</span><span class="muted">2026-11-23 · models and providers, fallbacks, lanes per provider</span></div>
+    <div class="head"><h2>v30</h2><span class="tag">earlier</span><span class="muted">2026-11-23 · models and providers, fallbacks, lanes per provider</span></div>
     <div class="tablebox"><table>
       <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
       <tbody>

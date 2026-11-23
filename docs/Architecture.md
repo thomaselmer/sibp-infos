@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 30 · 2026-11-23 · Task T-3
+Status: **draft** · Version 31 · 2026-11-23 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -570,6 +570,13 @@ through wrappers that will handle encryption later; today they pass data through
   use it; quality runs feed the files through the same path as an upload (`ingest_file`), so the real processing is
   measured, not a test-only path.
   - Environment variable with the path: `P82B_GOLDEN_DATASET_DIR` (Andreas, 2026-11-18).
+- **Raw input and expected result** (Andreas, 2026-11-23): `P82B_INPUT_DATASET_DIR` holds the raw input files as a
+  user would upload them; quality runs feed these through the upload path, and the application changes only its own
+  copies in the file store. `P82B_GOLDEN_DATASET_DIR` holds the expected result to compare against. **Neither
+  folder is ever written to** by the application or the tests; both paths are machine-local, in `.env`. The drive
+  does not enforce this yet (the folders are writable for the local user).
+- **Building it up** (Andreas, 2026-11-23): first run on the raw input, then Andreas reviews the results and reports
+  findings in the terminal; corrections become tests first (below). The golden dataset grows from what he confirms.
 
 ### What is measured, stage by stage
 
