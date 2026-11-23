@@ -184,6 +184,7 @@ footer { font-size: 0.85rem; }
           <tr><td>Start run</td><td>–</td><td>Everything whose precondition is met</td></tr>
           <tr><td>Cancel</td><td>Nothing; the pool is cleared and the orchestrator adds nothing new; at most some token usage remains. No cancel of single jobs (Andreas, 2026-11-17)</td><td>–</td></tr>
           <tr><td>Rerun</td><td>Everything (with warning)</td><td>Everything, from OCR</td></tr>
+          <tr><td>Reset to before a job type (development tool; only with <code>stage_reset</code> in local and dev, never in prod)</td><td>That job type and every later one: their results and jobs are deleted (Andreas, 2026-11-23)</td><td>Nothing; Start run queues them again</td></tr>
           <tr><td>Upload files</td><td>–</td><td>OCR of the new pages, then grouping of the new pages</td></tr>
           <tr><td>Remove file</td><td>Its pages, then as "remove page"</td><td>Rebuild of affected documents</td></tr>
           <tr><td>Remove page</td><td>Its document from sections down</td><td>Same</td></tr>
@@ -262,6 +263,7 @@ footer { font-size: 0.85rem; }
           <tr><td class="kind chg">changed</td><td><code>PAGE_FEATURES.document_type_hint</code>: the likely kind of the page, using the concept's kinds (D04, V03)</td><td>Andreas, 2026-11-23; input for document classification</td></tr>
           <tr><td class="kind add">decided</td><td><code>ocr_page</code> records what is on the page, including per-page judgments later steps take as input; grouping and classification interpret; text on every page; turned at most twice; <code>title_*</code> later</td><td>Andreas, 2026-11-23: each job's result stays testable and verifiable</td></tr>
           <tr><td class="kind add">decided</td><td>PDFs are split into pages and read like photos</td><td>Andreas, 2026-11-23: it also gives the information page by page; in the concept still marked "Thomas, noch zu bestätigen"</td></tr>
+          <tr><td class="kind add">new</td><td>User action "Reset to before a job type": a development tool, only in local and dev</td><td>Andreas, 2026-11-23: rerun a stage on results already paid for, e.g. OCR again after a review</td></tr>
           <tr><td class="kind del">removed</td><td><code>PAGE_FEATURES.finished_at</code></td><td>Andreas, 2026-11-23: not needed</td></tr>
           <tr><td class="kind add">decided</td><td><code>PAGE_FEATURES</code> gets no <code>project_id</code>; the project is reached through the page</td><td>Andreas, 2026-11-23: one row per page, cannot exist without its page</td></tr>
           <tr><td class="kind chg">open</td><td>Deviation from V03: text on every page, also plans, plant photos and irrelevant pages</td><td>To settle with Thomas</td></tr>

@@ -72,6 +72,7 @@ footer { font-size: 0.85rem; }
     <nav aria-label="Sections">
       <a href="#picture">Current picture</a>
       <a href="#open">Open decisions</a>
+      <a href="#v32">v32</a>
       <a href="#v31">v31</a>
       <a href="#v30">v30</a>
       <a href="#v29">v29</a>
@@ -247,8 +248,20 @@ footer { font-size: 0.85rem; }
     </table></div>
   </section>
 
+  <section id="v32">
+    <div class="head"><h2>v32</h2><span class="tag current">current</span><span class="muted">2026-11-23 · reset to before a job type</span></div>
+    <div class="tablebox"><table>
+      <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td><span class="kind add">decided</span></td><td>Reset to before a job type as a development tool, only with <code>stage_reset: true</code> in the YAML (local and dev, never prod)</td><td>Andreas, 2026-11-23: not for users; rerun a stage on results already paid for</td></tr>
+        <tr><td><span class="kind add">decided</span></td><td>Reset points are job types in chain order; grouping is reset before <code>decide_border</code>, not as a separate "before grouping"</td><td>Andreas, 2026-11-23: decide_border is already part of grouping</td></tr>
+        <tr><td><span class="kind add">new</span></td><td>The engine consumes the reset as a user event: results and jobs deleted in one transaction, waiting jobs leave their lanes, late results ignored</td><td>The engine stays the only writer of its project</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
   <section id="v31">
-    <div class="head"><h2>v31</h2><span class="tag current">current</span><span class="muted">2026-11-23 · raw input and expected result</span></div>
+    <div class="head"><h2>v31</h2><span class="tag">earlier</span><span class="muted">2026-11-23 · raw input and expected result</span></div>
     <div class="tablebox"><table>
       <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
       <tbody>

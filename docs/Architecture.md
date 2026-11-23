@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 31 · 2026-11-23 · Task T-3
+Status: **draft** · Version 32 · 2026-11-23 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -181,6 +181,14 @@ Decided so far (data model, section "Architecture, not ER model", and versions v
 
 - **Event-driven job pool, not a pipeline** (Andreas, 2026-11-17; ADR-paragraph-82b-0003). Any stage can be reset by
   invalidating its jobs.
+- **Reset to before a job type** (Andreas, 2026-11-23): a development tool, not a user action; allowed only with
+  `stage_reset: true` in `config/<environment>.yaml` (local and dev, never prod). Reset points are job types, in the
+  chain order of the registry: resetting to before one undoes it and every later one (e.g. before `ocr_page`; grouping
+  is reset before `decide_border`, its first job type, not as a separate "before grouping"). Each job type that can be
+  reset knows how to undo its results. The engine consumes the reset as a user event, so it stays the only writer of
+  its project: results and jobs are deleted in one transaction, waiting jobs leave their lanes, a result still
+  arriving for a deleted job is ignored. Start run then queues the stages again. Turned page images stay in the store
+  until unreferenced files are cleaned up.
 - **One engine per project** (first called an orchestrator per project, renamed in A5 below); projects never
   reference each other (Andreas, 2026-11-17).
 - **Events** are stored in a table and consumed by the project's orchestrator in order. Consuming an event and its

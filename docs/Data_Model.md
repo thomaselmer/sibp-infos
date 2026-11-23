@@ -21,6 +21,7 @@ An orchestrator reacts to events (job finished, user action), checks each job ty
 | Start run | – | Everything whose precondition is met |
 | Cancel | Nothing; the pool is cleared and the orchestrator adds nothing new; at most some token usage remains. No cancel of single jobs (Andreas, 2026-11-17) | – |
 | Rerun | Everything (with warning) | Everything, from OCR |
+| Reset to before a job type (development tool; only with `stage_reset` in local and dev, never in prod) | That job type and every later one: their results and jobs are deleted (Andreas, 2026-11-23) | Nothing; Start run queues them again |
 | Upload files | – | OCR of the new pages, then grouping of the new pages |
 | Remove file | Its pages, then as "remove page" | Rebuild of affected documents |
 | Remove page | Its document from sections down | Same |
