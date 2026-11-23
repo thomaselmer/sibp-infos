@@ -479,6 +479,10 @@ MVP starts with engineering offices (D17); HEIC is not listed in V01 and would b
   uploads. Starting values: Basis 150, Pro 500, Enterprise 1000 planned pages; storage = page limit × 10 MB × 2
   (about 3.3, 11 and 22 GB), enough for twice the pages as large photos, small enough that nobody can store
   unlimited amounts. New projects get the default tier (Basis, a placeholder until plans are settled).
+  - The margin is a silent grace (Andreas, 2026-11-23): users see only the planned pages (e.g. 500); 503 pages are
+    simply read, so nobody is tempted to aim for the margin. The api never sends the margin or the page limit;
+    pages over the tier are reported as yes/no, without a count that would reveal it. After a run the counts of
+    read pages show it anyway.
   - Upload: allowed up to the storage; everything uploaded is kept.
   - `ingest_file` splits every file, since it costs no model calls and the page count is shown.
   - `ocr_page` reads only the first *planned pages + margin* pages in upload order (e.g. 550 for 500). A page's

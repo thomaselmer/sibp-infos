@@ -20,7 +20,8 @@ but not read until the project moves to a larger tier.
 _Avoid_: plan (the tenant's booking), quota (for the tier itself)
 
 **Page limit** (Seitenkontingent):
-The pages a project's tier lets it read: planned pages plus margin, counted in upload order.
+The pages a project's tier lets it read: planned pages plus margin, counted in upload order. Users see only the
+planned pages; the margin is a silent grace.
 
 ## Akt
 
