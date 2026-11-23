@@ -72,6 +72,7 @@ footer { font-size: 0.85rem; }
     <nav aria-label="Sections">
       <a href="#picture">Current picture</a>
       <a href="#open">Open decisions</a>
+      <a href="#v27">v27</a>
       <a href="#v26">v26</a>
       <a href="#v25">v25</a>
       <a href="#v24">v24</a>
@@ -242,8 +243,21 @@ footer { font-size: 0.85rem; }
     </table></div>
   </section>
 
+  <section id="v27">
+    <div class="head"><h2>v27</h2><span class="tag current">current</span><span class="muted">2026-11-23 · upload limits from the code review</span></div>
+    <div class="tablebox"><table>
+      <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td><span class="kind add">decided</span></td><td>Upload limits: 200 MB per file; 2 GB and 500 files per upload request (the files chosen at once), checked by the declared size before the body is read; 2,000 pages per PDF; 100 megapixels per photo; each rejection with its own reason</td><td>Andreas, 2026-11-23. The code review found that one crafted PDF page could take about 3.6 GB of memory and crash the worker on every retry, and one huge request could fill the disk</td></tr>
+        <tr><td><span class="kind add">decided</span></td><td>Pages above 50 megapixels are rendered smaller instead of rejected</td><td>Andreas, 2026-11-23. Large plans are legitimate content; A0 at 150 DPI is about 35 megapixels</td></tr>
+        <tr><td><span class="kind add">new</span></td><td>Pages are rendered and stored one at a time; parsing, hashing, rendering and file writes run apart from the event loop</td><td>Only one page image in memory; the api stays responsive and the worker keeps its lease alive</td></tr>
+        <tr><td><span class="kind add">new</span></td><td>The worker tasks are bound to the file store in the worker only; the orchestrator gets the registry without them</td><td>Least rights per process: the orchestrator never needs file store access</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
   <section id="v26">
-    <div class="head"><h2>v26</h2><span class="tag current">current</span><span class="muted">2026-11-23 · object storage: Garage</span></div>
+    <div class="head"><h2>v26</h2><span class="tag">earlier</span><span class="muted">2026-11-23 · object storage: Garage</span></div>
     <div class="tablebox"><table>
       <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
       <tbody>

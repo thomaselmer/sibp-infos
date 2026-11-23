@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 26 · 2026-11-23 · Task T-3
+Status: **draft** · Version 27 · 2026-11-23 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -407,6 +407,12 @@ MVP starts with engineering offices (D17); HEIC is not listed in V01 and would b
   - Exception to the wrapper rule (section 9): the browser writes the original upload around the file store wrapper.
     Once encryption is built, `ingest_file` rewrites the original through the wrapper (read, encrypt, replace) before
     anything else reads it; until then nothing changes, since the wrappers pass data through.
+- **Upload limits** (Andreas, 2026-11-23, from the code review): at most 200 MB per file; 2 GB and 500 files per
+  upload request (the files chosen at once, checked by the declared size before the body is read; larger Akten are
+  uploaded in several requests; the limit per project is the page quota); 2,000 pages per PDF; 100 megapixels per
+  photo. Rejected files get their own reason (V01). Pages above 50 megapixels are rendered smaller, not rejected
+  (A4 at 150 DPI is about 2 megapixels, A0 about 35). Pages are rendered and stored one at a time; parsing, hashing,
+  rendering and file writes run apart from the event loop.
 - **For now, in the proof of concept** (2026-11-18, T-4): until Garage is built in (section 8), uploads go
   through the api into the local file store; the status stream checks the database once a second instead of
   waiting for a report from the orchestrator; the TypeScript types are written by hand; no login, every request
