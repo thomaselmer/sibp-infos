@@ -14,6 +14,7 @@ Format and rules: "Tasks" in `AGENTS.md`.
 ## Blocked
 
 ## Open
+- [ ] T-7 Fill in `config/dev.yaml` and `config/prod.yaml` in the source submodule before the first deployment (left empty on purpose, 2026-11-23)
 
 ## Done
 - [x] T-6 Remove references to this repository from the source submodule — done 2026-11-23 — references removed from the code (submodule `31d40f8`); code map in Architecture section 4
