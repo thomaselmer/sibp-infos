@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 25 · 2026-11-18 · Task T-3
+Status: **draft** · Version 26 · 2026-11-23 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -24,7 +24,7 @@ Markers: **Decided** (name, date) · **Suggestion** (not decided) · **Open** (s
   decided later.
   - The processing unit covers the modules akt, processing, ai, knowledge (up to key info extraction, as the data
     model) and notes, plus what they need to run and to be seen: a minimal api and frontend, PostgreSQL, Redis,
-    MinIO, orchestrator and workers.
+    Garage (object storage), orchestrator and workers.
   - **Integration seam:** the unit gets the current user and the project from a small identity interface. Until A8,
     a stub returns one development user with access to every project; no login. Row Level Security and the
     encryption wrappers are already called through this seam, so integration replaces the stub, not the callers.
@@ -40,8 +40,8 @@ Markers: **Decided** (name, date) · **Suggestion** (not decided) · **Open** (s
     encryption patched in afterwards.
   - So that (4) stays a patch: every file read and write goes through the one file interface; content columns are
     read and written only through the owning module's interface; every content row carries project_id.
-  - **Object storage and encryption are Thomas's decisions** (Andreas, 2026-11-18); sections 8 and 9 hold the
-    current proposal until he decides.
+  - **Object storage and encryption are Thomas's decisions** (Andreas, 2026-11-18). Object storage is decided
+    (Garage, section 8); section 9 holds the current proposal for encryption until he decides.
 
 ## 2. Quality goals
 
@@ -396,18 +396,18 @@ MVP starts with engineering offices (D17); HEIC is not listed in V01 and would b
   it is not (documents found, key infos found); no single percentage. Remaining time ≈ open pages × seconds per page
   (per job type, from quality runs) ÷ parallel workers, shown once measured values exist. Counts come from JOB
   (done, queued, waiting) and Redis (running).
-- **Uploads straight to MinIO** (A9c; Andreas, 2026-11-18, left the choice to the recommendation):
+- **Uploads straight to object storage** (A9c; Andreas, 2026-11-18, left the choice to the recommendation):
   1. the frontend asks the api for upload slots (file names, sizes, types); the api checks access, allowed formats
      and the page quota and returns short-lived signed upload URLs (multipart for large files);
-  2. the browser uploads straight to MinIO under `projects/<project>/files/…`, showing progress per file;
+  2. the browser uploads straight to Garage under `projects/<project>/files/…`, showing progress per file;
   3. the frontend confirms the upload; the api registers FILE (type, size, content hash, upload position), counts the
      pages (a photo one page, a PDF its pages) and sets the status "bereit zur Verarbeitung". Unsupported or
-     unreadable files are rejected with one collected notice per upload (V01) and deleted from MinIO.
+     unreadable files are rejected with one collected notice per upload (V01) and deleted from Garage.
   - The api is never blocked by large files.
   - Exception to the wrapper rule (section 9): the browser writes the original upload around the file store wrapper.
     Once encryption is built, `ingest_file` rewrites the original through the wrapper (read, encrypt, replace) before
     anything else reads it; until then nothing changes, since the wrappers pass data through.
-- **For now, in the proof of concept** (2026-11-18, T-4): until the object storage product is chosen, uploads go
+- **For now, in the proof of concept** (2026-11-18, T-4): until Garage is built in (section 8), uploads go
   through the api into the local file store; the status stream checks the database once a second instead of
   waiting for a report from the orchestrator; the TypeScript types are written by hand; no login, every request
   acts as a development user. The frontend has the two pages above, with the pages of a project shown in place of
@@ -418,12 +418,20 @@ MVP starts with engineering offices (D17); HEIC is not listed in V01 and would b
 - PostgreSQL with pgvector (Andreas, 2026-11-17, same stack as the prototype); embeddings per page and per key info
   (data model v15, v16).
 - Files and page images live in S3-compatible object storage; workers read and write there directly (A5).
-- **Open, Thomas decides** (Andreas, 2026-11-18): the object storage product. Proposed so far: MinIO in every
-  environment (A6), but its community Docker images are no longer published (checked 2026-11-18); alternatives such
-  as Garage or SeaweedFS speak the same S3 API. Code speaks only the S3 API; replication and backups are our job.
+- **Decided** (Thomas and Andreas, 2026-11-23, A6): **Garage**, self-run in every environment. Code speaks only the
+  S3 API; replication and backups are our job. Chosen over SeaweedFS (paid edition holds self-healing, repair and
+  single sign-on; more parts to run: master, volume servers, filer with its own store, S3 gateway) and MinIO
+  (community Docker images no longer published, checked 2026-11-18). Garage supports the presigned URLs the upload
+  path needs; multipart uploads are stricter than Amazon's in some edge cases.
+  - **Built only when needed** (Thomas and Andreas, 2026-11-23): until then files stay in the local file store
+    behind the file interface (`FileStore`); Garage then replaces the implementation, not the callers.
+  - **Suggestion** (not decided): admin viewer `khairul169/garage-webui` (cluster, buckets, keys, object browser),
+    reached only locally or through an SSH tunnel, never public, since it holds the admin token and shows
+    confidential files. Any S3 client can browse the files as well.
 - **Decided** (Andreas, 2026-11-18, A7): key layout `projects/<project>/files/…`, `projects/<project>/pages/…`.
   Projects are shared and transferred between tenants (D05, D10), so the prefix is the project, not a tenant;
-  deleting a project deletes its prefix; MinIO policies can be set per prefix.
+  deleting a project deletes its prefix. Garage has no bucket policies: rights are granted per access key and
+  bucket, not per prefix; the api checks project access before it hands out a signed URL (section 9).
 - **Open:** retention of files after a project is deleted; backup schedule (with A2).
 - **Tenant separation** (Andreas, 2026-11-18, A7): **shared schema, the project is the unit of separation.**
   - All tenants share the same tables. Content rows hang on project_id; Row Level Security lets a request see only
@@ -462,11 +470,11 @@ through wrappers that will handle encryption later; today they pass data through
 ### Access and infrastructure
 
 **Decided** (Andreas, 2026-11-18):
-- TLS for every connection (browser, PostgreSQL, MinIO, model provider); disk encryption (LUKS) on dev and prod
+- TLS for every connection (browser, PostgreSQL, Garage, model provider); disk encryption (LUKS) on dev and prod
   servers; backups encrypted with a key kept apart from the servers.
 - Users: permission check in the app (tenant type × plan × role × project access, D06, A8); PostgreSQL Row Level
   Security as a second net per tenant (the app sets the tenant per transaction).
-- Own database and MinIO credentials per process with least rights (api, orchestrator; workers no database).
+- Own database and Garage credentials per process with least rights (api, orchestrator; workers no database).
 - Files in the browser only through short-lived signed URLs; revoking project access works at once in the app.
 - Support access only with a stored, time-limited grant by the tenant admin; every content access logged and
   visible to the customer.
@@ -548,7 +556,7 @@ through wrappers that will handle encryption later; today they pass data through
 |---|---|---|
 | job tests | each job as a pure function: input in, result out | made-up example pages |
 | engine tests | preconditions, invalidation, restart, lanes, cap per project, with fake workers | no model |
-| integration | whole flow with PostgreSQL, Redis and MinIO in Docker Compose | made-up mini Akt |
+| integration | whole flow with PostgreSQL, Redis and Garage in Docker Compose | made-up mini Akt |
 | quality runs and eval cases | stage metrics and error cases | golden dataset, local only |
 
 - **Recorded model answers** (Andreas, 2026-11-18, where possible and not too costly): automated tests replay
@@ -581,7 +589,7 @@ flowchart LR
   ORC --> DB
   ORC <--> RD
   WRK <--> RD
-  API --> OS[(MinIO, S3 API)]
+  API --> OS[(Garage, S3 API)]
   WRK --> OS
   WRK --> LLM[LLM provider]
 ```
