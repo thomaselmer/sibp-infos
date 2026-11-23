@@ -4,10 +4,12 @@ Progress tracker only; keeps the next session oriented. Done keeps the last 10 e
 Format and rules: "Tasks" in `AGENTS.md`.
 
 ## In progress
+- [ ] T-10 Uploads survive interruptions: clear progress, warning before leaving, continue by name and size without duplicates, clean up abandoned uploads — started 2026-11-23
+  Next: built and reviewed (submodule `99b6c28`, `bbf2742`); Andreas pushes, pulls on the dev host and tries it in the browser; open: order of continued uploads
 - [ ] T-9 Container images and a distributed deployment: workers on a remote host via SSH tunnel (stopover), then hosts by role on the office network with automatic deploy from self-hosted runners (target) — started 2026-11-23
-  Next: built and squashed into submodule `b29195a` (host addresses only in each host's `.env`); Andreas pushes `andreas`, merges to `dev`; an admin registers the runner and sets `P82B_CORE_HOST`; then Architecture section 12
+  Next: built and running by hand on the dev core host (submodule `bbf2742`, Architecture v34); left: Andreas pushes, merges into `dev`; an admin registers the runner and sets `P82B_CORE_HOST`
 - [ ] T-8 Garage with uploads straight from the browser, and tiers that limit storage and processed pages — started 2026-11-23
-  Next: built (submodule `6ac4125`, Architecture v33, data model v40); Andreas decides the default tier (Basis set as placeholder); open: removing never-confirmed uploads, the border rule once `decide_border` exists, pricing (D19) with Thomas
+  Next: built (submodule `6ac4125`, Architecture v33, data model v40); Andreas decides the default tier (Basis set as placeholder); open (removing never-confirmed uploads done in T-10): the border rule once `decide_border` exists, pricing (D19) with Thomas
 - [ ] T-4 Proof of concept of the processing in the source submodule — thin slice first, measured against the golden dataset (`docs/Architecture.md`) — started 2026-11-18
   Next: job pool, ingest_file, api and frontend built; ocr_page and the stage reset (development tool) built (submodule `e5c3b95`); next: first run on the golden dataset, Andreas reviews the results and reports findings in the terminal; stage 2 fallback (result too weak) and title_* still open
 - [ ] T-3 Software architecture for the MVP, platform-wide — `docs/Architecture.md` (end result + history), decisions one by one with Andreas; data model also as `docs/Data_Model.md` — started 2026-11-18

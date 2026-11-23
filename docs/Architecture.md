@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 33 · 2026-11-23 · Task T-3
+Status: **draft** · Version 34 · 2026-11-23 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -461,8 +461,14 @@ MVP starts with engineering offices (D17); HEIC is not listed in V01 and would b
      deleted from Garage. Only ready files are processed.
   - One signed PUT per file; multipart only when files get larger than one request handles well.
   - Pending uploads count against the storage from the moment their URL is handed out, so unconfirmed uploads
-    cannot exceed it. **Open:** removing pending files that are never confirmed (with the cleanup of unreferenced
-    files).
+    cannot exceed it.
+  - **Interrupted uploads** (Andreas, 2026-11-23, T-10): the browser sends the files itself, so leaving the page
+    stops an upload; the page asks first. Dropping the same files again continues: files of the same name and size
+    already in the project are skipped ("schon vorhanden"), pending ones continue in their own FILE with a new
+    signed URL. A pending upload not done `upload.abandon_after_seconds` after it began (YAML, at least the signed
+    URL validity) is abandoned: shown as such, no longer counted against the storage, and removed with whatever
+    reached Garage on the next upload to the project. **Open:** the order of continued files (today they move to
+    the end; the order is in the file names for now) and the cleanup of other unreferenced files.
   - Page images are shown the same way: the api redirects to a short-lived signed URL.
   - The api is never blocked by large files.
   - Exception to the wrapper rule (section 9): the browser writes the original upload around the file store wrapper.
@@ -690,13 +696,34 @@ flowchart LR
 
 - Every environment runs the same images. **Configuration** (Andreas, 2026-11-23): only secrets in `.env` (never
   committed) or environment variables; all other settings in `config/<environment>.yaml` in the repository, one file
-  per environment (`local`, later `dev`, `prod`), chosen by `P82B_ENV`. An environment variable overrides a YAML
+  per environment (`local`, `dev`, later `prod`), chosen by `P82B_ENV`. An environment variable overrides a YAML
   value (e.g. for one test run or a container). The database URL is built from the YAML and the password; the
   backend refuses to start when a secret is in the YAML or a setting is in `.env`.
+  - **Exception: values of one host** (Andreas, 2026-11-23, T-9) go into that host's `.env` too, named `P82B_*`:
+    the environment, addresses that differ per host, the containers of the host (number of workers, image) and the
+    dataset paths. Host names stay out of the shared repository. The YAML names such a value as a variable
+    (`${P82B_DATABASE_HOST}`); a missing one stops only a process that uses that setting.
+  - **Addresses per part** (Andreas, 2026-11-23): PostgreSQL, Redis, the api, Garage (for the processes and for the
+    browser) and the frontend (CORS origin) each have their own address in the YAML, so each can move to a host of
+    its own.
+- **Containers and roles** (Andreas, 2026-11-23, T-9): one backend image runs the api, orchestrator and worker; the
+  command picks the process. Docker Compose starts a host's roles by profile: `core` (migrations, api,
+  orchestrator, next to PostgreSQL, Redis and Garage) and `worker`. A host with only workers needs only the worker
+  Compose file and no database settings. The app containers use the host's network.
+- **dev environment** (Andreas, 2026-11-23, T-9): one core host on the office network runs the roles `core` and
+  `worker`; further hosts add workers. Hosts reach each other over the office network (no separate private network);
+  services that other hosts use listen on the core host's network address, Redis with a password. The api listens
+  only on the core host's own address until login exists (A8); developers reach it through an SSH tunnel, with the
+  frontend on their own machine.
+- **Deploy to dev** (Andreas, 2026-11-23, T-9): every push to `dev` is deployed by self-hosted GitHub Actions
+  runners on the hosts (the hosts are not reachable from GitHub): the core host first (build, migrations, start),
+  then the worker hosts from the same commit. Each host builds the image itself, natively for its processor; no
+  registry yet. Each host keeps its `.env` outside the checkout. Registering a runner needs admin rights on the
+  repository.
 - Workers scale by running more `worker` containers (by hand in the MVP).
 - Backups of the database and the object storage are our job (no managed service assumed).
 - **Suggestion** (from the prototype, to confirm): Caddy as reverse proxy with automatic TLS; images in the GitHub
-  container registry; build and deploy with GitHub Actions.
+  container registry once several hosts should pull one image; build and deploy to prod with GitHub Actions.
 - **Open:** the concrete provider and location (AT/DE); managed or self-run PostgreSQL; backup schedule and
   retention; whether object storage comes from the same provider (A6).
 

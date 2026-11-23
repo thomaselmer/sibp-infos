@@ -72,6 +72,7 @@ footer { font-size: 0.85rem; }
     <nav aria-label="Sections">
       <a href="#picture">Current picture</a>
       <a href="#open">Open decisions</a>
+      <a href="#v34">v34</a>
       <a href="#v33">v33</a>
       <a href="#v32">v32</a>
       <a href="#v31">v31</a>
@@ -249,8 +250,23 @@ footer { font-size: 0.85rem; }
     </table></div>
   </section>
 
+  <section id="v34">
+    <div class="head"><h2>v34</h2><span class="tag current">current</span><span class="muted">2026-11-23 · containers, roles per host, dev deployment, interrupted uploads</span></div>
+    <div class="tablebox"><table>
+      <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td><span class="kind add">decided</span></td><td>One backend image for api, orchestrator and worker; Compose starts a host's roles by profile (<code>core</code>, <code>worker</code>); a worker-only host needs only the worker Compose file and no database settings</td><td>Andreas, 2026-11-23: a run exhausted the RAM of a developer PC; the heavy work moves to a stronger host, the split prepared from the start</td></tr>
+        <tr><td><span class="kind add">decided</span></td><td>dev environment: one core host on the office network with the roles core and worker; further hosts add workers; Redis with a password once it listens on the network; the api only on the core host's own address until login (A8), reached through an SSH tunnel</td><td>Andreas, 2026-11-23: the office network is enough between the hosts; the api has no login yet</td></tr>
+        <tr><td><span class="kind add">decided</span></td><td>Addresses per part in the YAML (PostgreSQL, Redis, api, Garage for processes and browser, frontend); values of one host (<code>P82B_*</code>: environment, addresses, containers, dataset paths) in that host's <code>.env</code>, named in the YAML as variables</td><td>Andreas, 2026-11-23: each part can move to a host of its own; host names stay out of the shared repository</td></tr>
+        <tr><td><span class="kind add">decided</span></td><td>Every push to <code>dev</code> is deployed by self-hosted GitHub Actions runners: core host first, then worker hosts, same commit; each host builds natively; no registry yet</td><td>Andreas, 2026-11-23: the new version deployed right after a push keeps the hosts consistent; the hosts are not reachable from GitHub</td></tr>
+        <tr><td><span class="kind add">decided</span></td><td>Interrupted uploads: a warning before leaving the page; dropping the same files again skips files of the same name and size and continues pending ones; uploads not done after <code>upload.abandon_after_seconds</code> are shown as abandoned, no longer counted, and removed on the next upload</td><td>Andreas, 2026-11-23: reloading the page left 465 of 545 uploads pending for good and blocking the storage</td></tr>
+        <tr><td><span class="kind chg">open</span></td><td>Order of continued uploads (today they move to the end); runner registration by an admin; Caddy and a registry for prod</td><td>The order is in the file names for now (Andreas, 2026-11-23)</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
   <section id="v33">
-    <div class="head"><h2>v33</h2><span class="tag current">current</span><span class="muted">2026-11-23 · Garage built, uploads straight from the browser, tiers</span></div>
+    <div class="head"><h2>v33</h2><span class="tag">earlier</span><span class="muted">2026-11-23 · Garage built, uploads straight from the browser, tiers</span></div>
     <div class="tablebox"><table>
       <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
       <tbody>
