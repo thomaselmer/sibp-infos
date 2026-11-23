@@ -5,7 +5,7 @@ Format and rules: "Tasks" in `AGENTS.md`.
 
 ## In progress
 - [ ] T-4 Proof of concept of the processing in the source submodule — thin slice first, measured against the golden dataset (`docs/Architecture.md`) — started 2026-11-18
-  Next: job pool, ingest_file, api and frontend built; file store passed in, upload limits (submodule `19a8cb5`); next ocr_page from the prototype (needs OPENAI_API_KEY in `.env`), measured on the golden dataset
+  Next: job pool, ingest_file, api and frontend built; ocr_page built (submodule `3900b85`); next: first run on the golden dataset, Andreas reviews the results and reports findings in the terminal; stage 2 fallback (result too weak) and title_* still open
 - [ ] T-3 Software architecture for the MVP, platform-wide — `docs/Architecture.md` (end result + history), decisions one by one with Andreas; data model also as `docs/Data_Model.md` — started 2026-11-18
   Next: architecture for the processing unit complete; object storage Garage decided v26 (built when needed); ADRs 0002–0008 wait for Andreas; golden dataset format when Andreas says it is ready; A8, A10, A11 deferred
 - [ ] T-1 Data model for the clean start — `docs/Data_Model.html` (v32), no open questions for the scope up to key info extraction; deviations from the concept wait for Thomas — started 2026-11-16

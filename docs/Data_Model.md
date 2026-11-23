@@ -80,7 +80,7 @@ One job type per unit of work and object. Modelled up to key info extraction; th
 | extract_keyinfos | Section | Section text | Key infos (verbatim, page and line) | classify_document done | embed_keyinfo per key info; later steps to be decided |
 | embed_keyinfo | Key info | Text | KEYINFO.embedding | extract_keyinfos done | – |
 
-Decided (Andreas, 2026-11-23), ocr_page: it records what is on the page; grouping (decide_border) and document classification interpret it and make no calls of their own on the page image. It fills text on every page, all PAGE_FEATURES including the per-page judgments that later steps take as input (indicates_*, is_text_document, is_construction_plan, is_irrelevant), document_type_hint and the page's classification; the title_* features are decided later and stay empty for now. A page is turned at most twice. PDFs are split into pages and read page by page like photos (decided; it also gives the information page by page). Deviation from the concept (V03 "bei Plänen, Anlagenfotos und irrelevanten Seiten kein Text"), to settle with Thomas: text is read on every page.
+Decided (Andreas, 2026-11-23), ocr_page: it records what is on the page; grouping (decide_border) and document classification interpret it and make no calls of their own on the page image. It fills text on every page, all PAGE_FEATURES including the per-page judgments that later steps take as input (indicates_*, is_text_document, is_construction_plan, is_irrelevant), document_type_hint and the page's classification; the title_* features are decided later and stay empty for now. A page is turned at most twice. PAGE_FEATURES has no project_id: it is one row per page and cannot exist without its page, so the project is reached through the page (Andreas, 2026-11-23); finished_at is dropped (not needed). PDFs are split into pages and read page by page like photos (decided; it also gives the information page by page). Deviation from the concept (V03 "bei Plänen, Anlagenfotos und irrelevanten Seiten kein Text"), to settle with Thomas: text is read on every page.
 
 Decided (Andreas, 2026-11-17): page turning stays inside ocr_page; duplicate checks are separate job types per level (file, page, document). Decided (Andreas, 2026-11-17): find_sections runs before the type is known: every document first gets a root section over the whole document, then all candidate section types are looked for beneath it; what was found is reported in DOCUMENT_FEATURES, which classify_document and later steps use.
 
@@ -365,7 +365,6 @@ string worker_id "nullable, from the result"
 text error "nullable"
 datetime created_at
 datetime started_at "nullable, from the result"
-datetime finished_at "nullable"
 }
 TOKEN_USAGE {
 uuid id PK

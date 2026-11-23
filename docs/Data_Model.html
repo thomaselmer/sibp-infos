@@ -262,6 +262,8 @@ footer { font-size: 0.85rem; }
           <tr><td class="kind chg">changed</td><td><code>PAGE_FEATURES.document_type_hint</code>: the likely kind of the page, using the concept's kinds (D04, V03)</td><td>Andreas, 2026-11-23; input for document classification</td></tr>
           <tr><td class="kind add">decided</td><td><code>ocr_page</code> records what is on the page, including per-page judgments later steps take as input; grouping and classification interpret; text on every page; turned at most twice; <code>title_*</code> later</td><td>Andreas, 2026-11-23: each job's result stays testable and verifiable</td></tr>
           <tr><td class="kind add">decided</td><td>PDFs are split into pages and read like photos</td><td>Andreas, 2026-11-23: it also gives the information page by page; in the concept still marked "Thomas, noch zu bestätigen"</td></tr>
+          <tr><td class="kind del">removed</td><td><code>PAGE_FEATURES.finished_at</code></td><td>Andreas, 2026-11-23: not needed</td></tr>
+          <tr><td class="kind add">decided</td><td><code>PAGE_FEATURES</code> gets no <code>project_id</code>; the project is reached through the page</td><td>Andreas, 2026-11-23: one row per page, cannot exist without its page</td></tr>
           <tr><td class="kind chg">open</td><td>Deviation from V03: text on every page, also plans, plant photos and irrelevant pages</td><td>To settle with Thomas</td></tr>
         </tbody>
       </table>
@@ -1223,7 +1225,6 @@ erDiagram
         text error "nullable"
         datetime created_at
         datetime started_at "nullable, from the result"
-        datetime finished_at "nullable"
     }
 
     TOKEN_USAGE {

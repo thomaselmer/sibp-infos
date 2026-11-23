@@ -169,6 +169,8 @@ the sections, decisions and concept IDs here (Andreas, 2026-11-23). Paths are re
 | `backend/app/modules/processing/engine/` | section 5 (engine, orchestrator, worker runtime, failures) |
 | `backend/app/modules/processing/pool/` | section 5 "Job pool, lanes and fairness" (lanes, semaphores, result streams), ADR-paragraph-82b-0007 |
 | `backend/app/pipeline/ingest.py` | data model (job types: ingest_file) |
+| `backend/app/pipeline/ocr.py` | data model (job types: ocr_page), V03 |
+| `backend/app/modules/ai/` | section 6 (models, providers, fallbacks), A3, A4; `flows/ocr_page.py`: V03, D04 (document kinds), prompt from the prototype |
 | `backend/app/pipeline/runs.py` | data model (user actions: start_run) |
 | `backend/app/api/` | section 7, A9 and A9c (upload path), V01 (rejections reported together); permissions in T-4 step 4 |
 | `frontend/lib/api.ts` | section 7 (hand-written types until generated from OpenAPI) |
