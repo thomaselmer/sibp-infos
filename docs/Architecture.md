@@ -715,7 +715,8 @@ flowchart LR
   services that other hosts use listen on the core host's network address, Redis with a password. The api listens
   only on the core host itself; users reach the app through Caddy (see "Entry point"), a developer's own frontend
   through an SSH tunnel.
-- **Deploy to dev** (Andreas, 2026-11-23, T-9): every push to `dev` is deployed by self-hosted GitHub Actions
+- **Deploy to dev** (Andreas, 2026-11-23, T-9): every push to the deploy branch (for now `andreas`, later `dev`;
+  Andreas, 2026-11-23) is deployed by self-hosted GitHub Actions
   runners on the hosts (the hosts are not reachable from GitHub): the core host first (build, migrations, start),
   then the worker hosts from the same commit. Each host builds the image itself, natively for its processor; no
   registry yet. Each host keeps its `.env` outside the checkout. Registering a runner needs admin rights on the

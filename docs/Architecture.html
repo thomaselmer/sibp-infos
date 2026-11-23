@@ -257,6 +257,7 @@ footer { font-size: 0.85rem; }
       <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
       <tbody>
         <tr><td><span class="kind add">decided</span></td><td>Caddy is the core host's only entry point (HTTPS, private networks only); it sends <code>/api</code> to the api, signed bucket URLs to Garage and the rest to the frontend, now a production-build container; api and frontend listen only on the core host</td><td>Andreas, 2026-11-23: a reliable, lasting way to reach dev instead of SSH tunnels; Caddy is already in use at Alpsoft (replaces the suggestion from the prototype)</td></tr>
+        <tr><td><span class="kind chg">changed</span></td><td>The deploy to dev runs on pushes to <code>andreas</code> for now, later <code>dev</code></td><td>Andreas, 2026-11-23: the work happens on that branch at the moment</td></tr>
         <tr><td><span class="kind add">decided</span></td><td>No login in dev until A8; the address is a value of the host</td><td>Andreas, 2026-11-23: a login is needed later, not now</td></tr>
         <tr><td><span class="kind chg">open</span></td><td>Certificate: Caddy's own authority for now; Let's Encrypt (used by Alpsoft's public apps) through the DNS challenge needs the DNS provider and a token; DNS entry for the address</td><td>The core host is not reachable from the internet</td></tr>
       </tbody>
