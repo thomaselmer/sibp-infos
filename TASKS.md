@@ -4,6 +4,8 @@ Progress tracker only; keeps the next session oriented. Done keeps the last 10 e
 Format and rules: "Tasks" in `AGENTS.md`.
 
 ## In progress
+- [ ] T-11 Reach the dev environment directly: Caddy with HTTPS in front of the frontend (as a container), api and Garage; office addresses only, no login until A8 — started 2026-11-23
+  Next: built and tested locally (submodule commit after `bbf2742`, Architecture v35); Andreas deploys on the dev host and opens the address; open: Let's Encrypt via DNS challenge (provider, token), DNS entry
 - [ ] T-10 Uploads survive interruptions: clear progress, warning before leaving, continue by name and size without duplicates, clean up abandoned uploads — started 2026-11-23
   Next: built and reviewed (submodule `99b6c28`, `bbf2742`); Andreas pushes, pulls on the dev host and tries it in the browser; open: order of continued uploads
 - [ ] T-9 Container images and a distributed deployment: workers on a remote host via SSH tunnel (stopover), then hosts by role on the office network with automatic deploy from self-hosted runners (target) — started 2026-11-23

@@ -72,6 +72,7 @@ footer { font-size: 0.85rem; }
     <nav aria-label="Sections">
       <a href="#picture">Current picture</a>
       <a href="#open">Open decisions</a>
+      <a href="#v35">v35</a>
       <a href="#v34">v34</a>
       <a href="#v33">v33</a>
       <a href="#v32">v32</a>
@@ -250,8 +251,20 @@ footer { font-size: 0.85rem; }
     </table></div>
   </section>
 
+  <section id="v35">
+    <div class="head"><h2>v35</h2><span class="tag current">current</span><span class="muted">2026-11-23 · Caddy as the entry point of the dev environment</span></div>
+    <div class="tablebox"><table>
+      <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td><span class="kind add">decided</span></td><td>Caddy is the core host's only entry point (HTTPS, private networks only); it sends <code>/api</code> to the api, signed bucket URLs to Garage and the rest to the frontend, now a production-build container; api and frontend listen only on the core host</td><td>Andreas, 2026-11-23: a reliable, lasting way to reach dev instead of SSH tunnels; Caddy is already in use at Alpsoft (replaces the suggestion from the prototype)</td></tr>
+        <tr><td><span class="kind add">decided</span></td><td>No login in dev until A8; the address is a value of the host</td><td>Andreas, 2026-11-23: a login is needed later, not now</td></tr>
+        <tr><td><span class="kind chg">open</span></td><td>Certificate: Caddy's own authority for now; Let's Encrypt (used by Alpsoft's public apps) through the DNS challenge needs the DNS provider and a token; DNS entry for the address</td><td>The core host is not reachable from the internet</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
   <section id="v34">
-    <div class="head"><h2>v34</h2><span class="tag current">current</span><span class="muted">2026-11-23 · containers, roles per host, dev deployment, interrupted uploads</span></div>
+    <div class="head"><h2>v34</h2><span class="tag">earlier</span><span class="muted">2026-11-23 · containers, roles per host, dev deployment, interrupted uploads</span></div>
     <div class="tablebox"><table>
       <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
       <tbody>

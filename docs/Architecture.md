@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 34 · 2026-11-23 · Task T-3
+Status: **draft** · Version 35 · 2026-11-23 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -713,8 +713,8 @@ flowchart LR
 - **dev environment** (Andreas, 2026-11-23, T-9): one core host on the office network runs the roles `core` and
   `worker`; further hosts add workers. Hosts reach each other over the office network (no separate private network);
   services that other hosts use listen on the core host's network address, Redis with a password. The api listens
-  only on the core host's own address until login exists (A8); developers reach it through an SSH tunnel, with the
-  frontend on their own machine.
+  only on the core host itself; users reach the app through Caddy (see "Entry point"), a developer's own frontend
+  through an SSH tunnel.
 - **Deploy to dev** (Andreas, 2026-11-23, T-9): every push to `dev` is deployed by self-hosted GitHub Actions
   runners on the hosts (the hosts are not reachable from GitHub): the core host first (build, migrations, start),
   then the worker hosts from the same commit. Each host builds the image itself, natively for its processor; no
@@ -722,8 +722,17 @@ flowchart LR
   repository.
 - Workers scale by running more `worker` containers (by hand in the MVP).
 - Backups of the database and the object storage are our job (no managed service assumed).
-- **Suggestion** (from the prototype, to confirm): Caddy as reverse proxy with automatic TLS; images in the GitHub
-  container registry once several hosts should pull one image; build and deploy to prod with GitHub Actions.
+- **Entry point** (Andreas, 2026-11-23, T-11): **Caddy** as the core host's only entry point, a container in the
+  `core` role: HTTPS, only addresses of private networks (office, VPN), `/api` to the api, the bucket's signed URLs
+  to Garage, everything else to the frontend, which runs as a production build in the same role. api and frontend
+  listen only on the core host itself. The address users open is a value of the host (`P82B_PUBLIC_HOST`).
+  - **No login in dev until A8** (Andreas, 2026-11-23): everyone who reaches the address on the office network
+    sees the projects.
+  - **Certificates:** Caddy's own certificate authority until a real certificate is set up. Alpsoft's public apps
+    use Let's Encrypt; for a host not reachable from the internet that needs the DNS challenge (API token of the
+    DNS provider, Caddy with its plugin). **Open:** DNS provider and token; DNS entry for the address.
+- **Suggestion** (from the prototype, to confirm): images in the GitHub container registry once several hosts
+  should pull one image; build and deploy to prod with GitHub Actions.
 - **Open:** the concrete provider and location (AT/DE); managed or self-run PostgreSQL; backup schedule and
   retention; whether object storage comes from the same provider (A6).
 
