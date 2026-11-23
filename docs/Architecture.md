@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 28 · 2026-11-23 · Task T-3
+Status: **draft** · Version 29 · 2026-11-23 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -623,8 +623,11 @@ flowchart LR
   WRK --> LLM[LLM provider]
 ```
 
-- Every environment runs the same images; configuration through environment variables only (names, never values,
-  in the repository).
+- Every environment runs the same images. **Configuration** (Andreas, 2026-11-23): only secrets in `.env` (never
+  committed) or environment variables; all other settings in `config/<environment>.yaml` in the repository, one file
+  per environment (`local`, later `dev`, `prod`), chosen by `P82B_ENV`. An environment variable overrides a YAML
+  value (e.g. for one test run or a container). The database URL is built from the YAML and the password; the
+  backend refuses to start when a secret is in the YAML or a setting is in `.env`.
 - Workers scale by running more `worker` containers (by hand in the MVP).
 - Backups of the database and the object storage are our job (no managed service assumed).
 - **Suggestion** (from the prototype, to confirm): Caddy as reverse proxy with automatic TLS; images in the GitHub

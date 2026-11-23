@@ -72,6 +72,7 @@ footer { font-size: 0.85rem; }
     <nav aria-label="Sections">
       <a href="#picture">Current picture</a>
       <a href="#open">Open decisions</a>
+      <a href="#v29">v29</a>
       <a href="#v28">v28</a>
       <a href="#v27">v27</a>
       <a href="#v26">v26</a>
@@ -244,8 +245,22 @@ footer { font-size: 0.85rem; }
     </table></div>
   </section>
 
+  <section id="v29">
+    <div class="head"><h2>v29</h2><span class="tag current">current</span><span class="muted">2026-11-23 · secrets in .env, settings in YAML</span></div>
+    <div class="tablebox"><table>
+      <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td><span class="kind add">decided</span></td><td>Only secrets in <code>.env</code> or environment variables; all other settings in <code>config/&lt;environment&gt;.yaml</code> in the repository, one file per environment, chosen by <code>P82B_ENV</code></td><td>Andreas, 2026-11-23. Settings of every environment are reviewable in Git; secrets stay out of it</td></tr>
+        <tr><td><span class="kind add">decided</span></td><td>An environment variable overrides a YAML value</td><td>Andreas, 2026-11-23. One-off changes for a test run or a container without editing the file</td></tr>
+        <tr><td><span class="kind add">decided</span></td><td>Database URL built from host, port, name and user in the YAML plus <code>POSTGRES_PASSWORD</code> from <code>.env</code></td><td>Andreas, 2026-11-23. Only the password is secret; Docker Compose reads the same variable</td></tr>
+        <tr><td><span class="kind add">new</span></td><td>The backend refuses to start when a secret is in the YAML or a setting is in <code>.env</code></td><td>Keeps the split from eroding</td></tr>
+        <tr><td><span class="kind del">replaced</span></td><td>Configuration through environment variables only (v3); a second <code>.env</code> in <code>backend/</code></td><td>The prototype's two templates had drifted apart (SQLite vs PostgreSQL, different parallelism)</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
   <section id="v28">
-    <div class="head"><h2>v28</h2><span class="tag current">current</span><span class="muted">2026-11-23 · where it is in the code</span></div>
+    <div class="head"><h2>v28</h2><span class="tag">earlier</span><span class="muted">2026-11-23 · where it is in the code</span></div>
     <div class="tablebox"><table>
       <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
       <tbody>
