@@ -72,6 +72,7 @@ footer { font-size: 0.85rem; }
     <nav aria-label="Sections">
       <a href="#picture">Current picture</a>
       <a href="#open">Open decisions</a>
+      <a href="#v30">v30</a>
       <a href="#v29">v29</a>
       <a href="#v28">v28</a>
       <a href="#v27">v27</a>
@@ -245,8 +246,23 @@ footer { font-size: 0.85rem; }
     </table></div>
   </section>
 
+  <section id="v30">
+    <div class="head"><h2>v30</h2><span class="tag current">current</span><span class="muted">2026-11-23 · models and providers, fallbacks, lanes per provider</span></div>
+    <div class="tablebox"><table>
+      <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td><span class="kind add">decided</span></td><td>Models in <code>config/&lt;environment&gt;.yaml</code>: <code>providers</code> (kind <code>openai</code> or <code>openai_compatible</code>, the secret holding the key), <code>models</code> (provider, fallbacks), <code>job_models</code> (<code>ocr_page</code>: <code>gpt-5-mini</code>); choosing a model chooses its provider and lane</td><td>Andreas, 2026-11-23. A local server with an OpenAI-like API is planned</td></tr>
+        <tr><td><span class="kind chg">changed</span></td><td>Lanes and semaphores per provider instead of per model</td><td>Andreas, 2026-11-23: providers limit the requests. Note: OpenAI states its limits per model</td></tr>
+        <tr><td><span class="kind add">decided</span></td><td>Fallback when a model is unavailable: an ordered list of fallback models per model (empty for now); no connection, timeout, 5xx including 503 overload, model not found → the same call goes to the next model; all fail → the job waits, not counted as failed; the result names the model that produced it</td><td>Andreas, 2026-11-23: the simple solution first; the prototype saw 503 "currently overloaded"</td></tr>
+        <tr><td><span class="kind chg">kept</span></td><td>Rate limit (429): the job waits and the same model is tried again; no fallback</td><td>Andreas, 2026-11-23; further mechanisms later</td></tr>
+        <tr><td><span class="kind chg">open</span></td><td>Fallback when a result is too weak (stage 2)</td><td>Not worked out yet</td></tr>
+        <tr><td><span class="kind add">decided</span></td><td>Quality runs may send real golden dataset pages to the OpenAI API from the local machine; prod stays blocked until the terms are checked</td><td>Andreas, 2026-11-23</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
   <section id="v29">
-    <div class="head"><h2>v29</h2><span class="tag current">current</span><span class="muted">2026-11-23 · secrets in .env, settings in YAML</span></div>
+    <div class="head"><h2>v29</h2><span class="tag">earlier</span><span class="muted">2026-11-23 · secrets in .env, settings in YAML</span></div>
     <div class="tablebox"><table>
       <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
       <tbody>

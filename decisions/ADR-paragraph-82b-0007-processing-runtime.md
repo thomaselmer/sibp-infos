@@ -20,9 +20,9 @@ heartbeats. How this runs was open. Chosen by Andreas on 2026-11-18 (architectur
 - PostgreSQL stays the source of truth; Redis holds only messages in transit.
 - One shared pool for all projects: workers take whatever runnable job comes next; results go to the stream of the
   orchestrator process that holds the project.
-- Lanes per model (plus a lane `code`), each a sorted queue ranked by priority, then time; jobs from user actions
+- Lanes per model provider (plus a lane `code`; Andreas, 2026-11-23, replaces lanes per model), each a sorted queue ranked by priority, then time; jobs from user actions
   get the fast lane priority.
-- A worker takes a slot of the model's semaphore (lease with expiry) before it takes a job from that lane; a job
+- A worker takes a slot of the provider's semaphore (lease with expiry) before it takes a job from that lane; a job
   answered with a rate limit goes back with a growing delay and does not count as an attempt.
 - A cap of jobs in the pool per project, over all lanes.
 

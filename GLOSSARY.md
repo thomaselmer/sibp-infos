@@ -23,6 +23,16 @@ _Avoid_: reference file, upload (for the single item)
 **Page** (Seite, D44):
 An image file, or one page of a PDF.
 
+**Page classification** (Einstufung, V03):
+What happens to a page: `process` (Aktenseite, wird ausgewertet), `keep` (nicht ausgewertet, aber relevant: plans,
+photos of the plant; stored and shown with the reason), `discard` (irrelevant: folder spines, failed shots; still
+visible and restorable, A04). Set by ocr_page.
+_Avoid_: akt, kept, irrelevant (earlier values)
+
+**Document type hint**:
+The likely kind of a single page as ocr_page reads it, using the concept's kinds (D04, V03); input for document
+classification, which decides the document's type.
+
 **Document** (Dokument, D44):
 Pages that belong together as one document, e.g. one Bescheid.
 
@@ -99,7 +109,7 @@ All jobs of all projects that may run now, shared by all workers.
 _Avoid_: pipeline
 
 **Lane**:
-The part of the job pool for one model, or `code` for jobs without a model call.
+The part of the job pool for one model provider, or `code` for jobs without a model call.
 _Avoid_: queue (for the lane as a whole)
 
 **Fast lane**:

@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 29 · 2026-11-23 · Task T-3
+Status: **draft** · Version 30 · 2026-11-23 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -138,7 +138,7 @@ processing/
 ai/
   flows/
     ocr_page.py      LangGraph flow, returns the typed result
-  model config       model per job type (section 6); decides the lane
+  model config       model per job type (section 6); its provider decides the lane
 akt/
   service            apply_ocr_result(...): writes text, features, classification
 ```
@@ -255,11 +255,11 @@ flowchart LR
   end
   ORC -->|"advisory lock per project"| DB
   EA -->|"one transaction: consume event or<br/>write result, create follow-up jobs"| DB
-  EA -->|"push runnable jobs<br/>(priority, project cap)"| LQ[["Redis lane queues<br/>code · one per model"]]
+  EA -->|"push runnable jobs<br/>(priority, project cap)"| LQ[["Redis lane queues<br/>code · one per provider"]]
   LQ -->|"take with lease"| W["workers (any number)"]
   W -.->|"heartbeat extends lease"| LQ
   W <-->|"originals, page images"| FS
-  W -->|"model call (semaphore per model)"| MP["model provider"]
+  W -->|"model call (semaphore per provider)"| MP["model provider"]
   W -->|"typed result, tokens"| RS[["Redis result stream<br/>one per project"]]
   ORC -->|"reaper: expired lease → LEASE_EXPIRED"| RS
   RS -->|"one XREAD for all its engines"| ORC
@@ -330,12 +330,14 @@ stateDiagram-v2
   that job and sends no result. The engine accepts only results of the job's current attempt. Each attempt writes its
   files under its own name (e.g. `pages/<page>/<job>-<attempt>.png`); files nothing points to are removed by a
   clean-up when the project is idle.
-- **Lanes per model.** Each model configured for a job type (section 6) has its own lane; job types without a model
-  call share the lane `code`. Switching a job type's model moves its jobs to that model's lane.
+- **Lanes per provider** (Andreas, 2026-11-23; replaces lanes per model): each provider of a configured model
+  (section 6) has its own lane, since providers limit the requests; job types without a model call share the lane
+  `code`. Switching a job type's model to one of another provider moves its jobs to that provider's lane. Note:
+  OpenAI states its rate limits per model; two models of one provider now share one limit.
 - **Sorted queue per lane** (Redis sorted set). The rank is priority first, then time. Jobs from "Apply changes" get
   the fast lane priority and come before waiting jobs of other projects; more priority levels are possible.
-- **Semaphore per model, taken before the job.** A worker goes through the lanes; for a model lane it first takes a
-  slot of that model's semaphore (size in configuration) and only then takes the first job of the lane. No free slot:
+- **Semaphore per provider, taken before the job.** A worker goes through the lanes; for a provider lane it first
+  takes a slot of that provider's semaphore (size in configuration) and only then takes the first job of the lane. No free slot:
   it skips the lane. No job: it gives the slot back.
   - Slots are leases with an expiry, extended by the worker's heartbeat; a dead worker's slot frees itself.
 - **Taking a job is a lease too.** Taking moves the job atomically from the queue to the lane's in-flight set with an
@@ -351,7 +353,7 @@ stateDiagram-v2
 
 | Mechanism | Solves |
 |---|---|
-| lanes with a semaphore per model | provider rate limits and load; a bottleneck stays in its lane |
+| lanes with a semaphore per provider | provider rate limits and load; a bottleneck stays in its lane |
 | sorted queue with priority | fast lane for corrections |
 | cap per project | fairness between projects |
 
@@ -363,6 +365,19 @@ stateDiagram-v2
   parameters). A job type's model can be switched on its own, when another model fits that step better; nothing else
   changes.
 - **Start:** all job types use the OpenAI API with one API key (environment variable, never in the repository).
+- **Configuration** (Andreas, 2026-11-23): in `config/<environment>.yaml`. `providers` names each provider, its kind
+  (`openai`; `openai_compatible` for a local server, which is planned) and the secret holding its key; `models`
+  names each model's provider and its `fallbacks`; `job_models` names the model of each job type (`ocr_page`:
+  `gpt-5-mini`). Choosing a model chooses its provider and lane.
+- **Fallback when a model is unavailable** (Andreas, 2026-11-23): each model has an ordered list of fallback models
+  (empty for now). On no connection, timeout, server error (5xx, including 503 overload) or model not found, the same
+  call goes to the next model in the list; when all fail, the job waits and is tried again later, not counted as
+  failed. The result and its token usage name the model that produced it. A rate limit (429) is not a fallback case:
+  the job waits and the same model is tried again. A fallback call to another provider takes no slot in that
+  provider's lane (accepted for now).
+- **Open:** fallback when a model's result is too weak (stage 2); further mechanisms for rate limits.
+- **Real data** (Andreas, 2026-11-23): quality runs on the golden dataset may send real pages to the OpenAI API from
+  the local machine; prod stays blocked until the terms are checked (below).
 - **AI flows with LangChain and LangGraph.** A job's task runs its flow (a LangChain call or a LangGraph graph) inside
   the worker and returns the job's typed result; flows never touch the database (section 5).
 - **Allowed providers** (A3): providers with processing in the EU and storage of the content excluded by contract,

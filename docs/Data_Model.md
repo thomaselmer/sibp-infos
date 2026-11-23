@@ -1,6 +1,6 @@
 # paragraph82b — Data Model
 
-Status: **draft** · current version **v38** · 2026-11-18
+Status: **draft** · current version **v39** · 2026-11-23
 
 Final result only: this file shows the current model. How it got here (all versions and changes) is in `Data_Model.html`, published as an artifact: https://claude.ai/artifact/EHPCd6tJNDvKj14RwmwSH6. English names, each mapped to a concept term (see `GLOSSARY.md`). How the software works (orchestrator, workers, monitoring) is in [`Architecture.md`](Architecture.md).
 
@@ -68,7 +68,7 @@ One job type per unit of work and object. Modelled up to key info extraction; th
 |---|---|---|---|---|---|
 | ingest_file | File | File | Pages (image, index in file, position) | File uploaded | ocr_page per page; check_file_duplicate |
 | check_file_duplicate | File | content_hash | Note if suspected | ingest_file done | – |
-| ocr_page | Page | Page image | Text, PAGE_FEATURES, classification; turned image if needed (turn, save, read again inside the job) | Page exists | embed_page (if akt); decide_border for each border whose window holds the page; check_page_duplicate |
+| ocr_page | Page | Page image | Text, PAGE_FEATURES, classification; turned image if needed (turn, save, read again inside the job) | Page exists | embed_page (if process); decide_border for each border whose window holds the page; check_page_duplicate |
 | embed_page | Page | Text | PAGE.embedding | ocr_page done | – |
 | check_page_duplicate | Page | Text and embedding of pages | Note if suspected | embed_page done | – |
 | decide_border | Pair of neighbouring pages | PAGE_FEATURES of the window | border_before, border_score, border_rules | ocr_page done for every page in the window | assemble_document once a stretch has decided borders at both ends |
@@ -79,6 +79,8 @@ One job type per unit of work and object. Modelled up to key info extraction; th
 | check_reference_numbers | Project | Reference numbers, dates | Notes (possible duplicates, date conflicts) | A reference number added or changed | – |
 | extract_keyinfos | Section | Section text | Key infos (verbatim, page and line) | classify_document done | embed_keyinfo per key info; later steps to be decided |
 | embed_keyinfo | Key info | Text | KEYINFO.embedding | extract_keyinfos done | – |
+
+Decided (Andreas, 2026-11-23), ocr_page: it records what is on the page; grouping (decide_border) and document classification interpret it and make no calls of their own on the page image. It fills text on every page, all PAGE_FEATURES including the per-page judgments that later steps take as input (indicates_*, is_text_document, is_construction_plan, is_irrelevant), document_type_hint and the page's classification; the title_* features are decided later and stay empty for now. A page is turned at most twice. PDFs are split into pages and read page by page like photos (decided; it also gives the information page by page). Deviation from the concept (V03 "bei Plänen, Anlagenfotos und irrelevanten Seiten kein Text"), to settle with Thomas: text is read on every page.
 
 Decided (Andreas, 2026-11-17): page turning stays inside ocr_page; duplicate checks are separate job types per level (file, page, document). Decided (Andreas, 2026-11-17): find_sections runs before the type is known: every document first gets a root section over the whole document, then all candidate section types are looked for beneath it; what was found is reported in DOCUMENT_FEATURES, which classify_document and later steps use.
 
@@ -182,7 +184,7 @@ uuid document_id FK "nullable"
 int file_page_index "0 for an image"
 int position "upload order, restarts at each document border"
 string image_path "rendered or rotated version"
-string classification "akt, kept, irrelevant"
+string classification "process, keep, discard; set by ocr_page"
 string border_before "open, new_document, continuation"
 float border_score "nullable, confidence 0 to 1 that border_before is right"
 jsonb border_rules "nullable, names and points of the rules that fired"
@@ -198,7 +200,7 @@ int page_number "nullable, as printed"
 int total_page_number "nullable, of x"
 string reference_number_raw "nullable, as read on the page"
 date date "nullable, as read on the page"
-string document_type_hint "nullable"
+string document_type_hint "nullable, the likely kind of the page (concept kinds, D04, V03)"
 bool is_text_document
 bool is_construction_plan
 bool is_irrelevant
