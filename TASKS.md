@@ -14,8 +14,8 @@ Format and rules: "Tasks" in `AGENTS.md`.
 ## Blocked
 
 ## Open
-- [ ] T-6 Remove references to this repository from the source submodule (ADR and task IDs, concept decision IDs, "Architecture section" in docstrings), rule 3 (code review 2026-11-23)
 
 ## Done
+- [x] T-6 Remove references to this repository from the source submodule — done 2026-11-23 — references removed from the code (submodule `31d40f8`); code map in Architecture section 4
 - [x] T-5 Limits for uploaded files before ocr_page — done 2026-11-23 — limits per file, request, PDF and photo; large pages rendered smaller, one at a time, off the event loop (submodule `19a8cb5`, Architecture v27)
 - [x] T-2 Set up the main repository — done 2026-11-18 — branches `dev`/`andreas`, `AGENTS.md`, `decisions/` (ADR 0001–0003), `TASKS.md`, data model moved to `docs/`

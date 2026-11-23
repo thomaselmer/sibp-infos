@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 27 · 2026-11-23 · Task T-3
+Status: **draft** · Version 28 · 2026-11-23 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -149,6 +149,29 @@ akt/
   (section 6).
 - Each module writes only its own data, through its public interface; the engine calls it inside the batch
   transaction. Job types without a model call have no flow in `ai`.
+
+### Where it is in the code
+
+The source submodule carries no references to this repository (rule 3 in `AGENTS.md`); this table links its code to
+the sections, decisions and concept IDs here (Andreas, 2026-11-23). Paths are relative to
+`the-real-and-final-paragraph82b/`.
+
+| Code | Sections, decisions, concept |
+|---|---|
+| `backend/app/platform/files.py` | sections 1 and 9 (one file interface, encryption seam), section 8 |
+| `backend/app/platform/logging.py` | section 10 |
+| `backend/app/modules/identity/` | section 1 (stub user until login), A8 |
+| `backend/app/modules/akt/` | data model (files, pages, documents, sections, reference numbers) |
+| `backend/app/modules/akt/pages.py` | V01 (accepted formats), section 7 (upload limits) |
+| `backend/app/modules/notes/events.py` | section 5 (user events wake the orchestrator) |
+| `backend/app/modules/processing/jobs/` | section 4 (job type split by role) |
+| `backend/app/modules/processing/models.py` | data model (job tables) |
+| `backend/app/modules/processing/engine/` | section 5 (engine, orchestrator, worker runtime, failures) |
+| `backend/app/modules/processing/pool/` | section 5 "Job pool, lanes and fairness" (lanes, semaphores, result streams), ADR-paragraph-82b-0007 |
+| `backend/app/pipeline/ingest.py` | data model (job types: ingest_file) |
+| `backend/app/pipeline/runs.py` | data model (user actions: start_run) |
+| `backend/app/api/` | section 7, A9 and A9c (upload path), V01 (rejections reported together); permissions in T-4 step 4 |
+| `frontend/lib/api.ts` | section 7 (hand-written types until generated from OpenAPI) |
 
 ## 5. Processing runtime
 
