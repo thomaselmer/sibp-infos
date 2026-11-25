@@ -9,7 +9,7 @@ Format and rules: "Tasks" in `AGENTS.md`.
 - [ ] T-10 Uploads survive interruptions: clear progress, warning before leaving, continue by name and size without duplicates, clean up abandoned uploads — started 2026-11-23
   Next: built and reviewed (submodule `99b6c28`, `bbf2742`); Andreas pushes, pulls on the dev host and tries it in the browser; open: order of continued uploads
 - [ ] T-9 Container images and a distributed deployment: workers on a remote host via SSH tunnel (stopover), then hosts by role on the office network with automatic deploy from self-hosted runners (target) — started 2026-11-23
-  Next: built and running by hand on the dev core host (submodule `bbf2742`, Architecture v34); left: Andreas pushes, merges into `dev`; an admin registers the runner and sets `P82B_CORE_HOST`
+  Next: first automatic deploy to the core host green (runner on the core host, `P82B_CORE_HOST` set, `.env` at the runner's `~/paragraph82b-dev.env`); left: push checkout v5 (submodule `5e6c4cf`), merge into `dev`, then deploy from `dev`
 - [ ] T-8 Garage with uploads straight from the browser, and tiers that limit storage and processed pages — started 2026-11-23
   Next: built (submodule `6ac4125`, Architecture v33, data model v40); Andreas decides the default tier (Basis set as placeholder); open (removing never-confirmed uploads done in T-10): the border rule once `decide_border` exists, pricing (D19) with Thomas
 - [ ] T-4 Proof of concept of the processing in the source submodule — thin slice first, measured against the golden dataset (`docs/Architecture.md`) — started 2026-11-18
