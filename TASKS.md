@@ -19,10 +19,14 @@ Format and rules: "Tasks" in `AGENTS.md`.
 ## Blocked
 
 ## Open
-- [ ] T-27 Certificate and address for dev: Let's Encrypt via DNS challenge (provider, token) instead of Caddy's own authority, DNS entry for the address (left open in T-11)
+- [ ] T-32 Certificate and address for dev: Let's Encrypt via DNS challenge (provider, token) instead of Caddy's own authority, DNS entry for the address (left open in T-11)
 - [ ] T-26 Paged, collapsible groups: files by status on the upload page, pages by classification on the processing page, api paging and group filters — plan in `docs/Previews_and_Paging.md`; after T-19 (batches, paths, `PAGE.sequence`) and T-18 Q11 (document view)
 - [ ] T-27 Files before processing: one WebP preview per file (first page) made when the upload is confirmed, shown in the file list with the original on click; remove a file before processing (row, original, preview; `storage_used` goes down), processed files not yet; names of skipped files shown — same file table as T-26, build together; workflow to be confirmed by Thomas; open: removing a processed file (block, or remove its pages and results like a reset)
-- [ ] T-20 Slice 1: `embed_page` (text-embedding-3-small) and the 6 missing `title_*` features read by `ocr_page` on every page — `docs/Grouping_and_Classification.md`; takes the embedding part of T-15
+- [ ] T-20 [ready-for-agent] Slice 1: `embed_page` (text-embedding-3-small) and the 6 missing `title_*` features read by `ocr_page` on every page — spec `docs/Page_Embeddings_and_Title_Features.md`; plan `docs/Grouping_and_Classification.md`; takes the embedding part of T-15
+- [ ] T-28 [ready-for-agent] Title features on every page: `ocr_page` reads and stores all 11 `title_*` — parent T-20; spec `docs/Page_Embeddings_and_Title_Features.md`, section "Tickets"
+- [ ] T-29 [ready-for-agent] Embedding call in the model layer: fallbacks, slots, fake, recordings, `embed` config — parent T-20; spec `docs/Page_Embeddings_and_Title_Features.md`, section "Tickets"
+- [ ] T-30 [ready-for-agent] `embed_page` after reading, with progress stage — parent T-20; Blocked by: T-29; spec `docs/Page_Embeddings_and_Title_Features.md`, section "Tickets"
+- [ ] T-31 [ready-for-agent] Catch-up and undo for embeddings: start run, re-read, resets — parent T-20; Blocked by: T-30; spec `docs/Page_Embeddings_and_Title_Features.md`, section "Tickets"
 - [ ] T-21 Slice 3: `decide_border` with the tier limit, rules behind a replaceable decision seam, per batch — needs T-19 — `docs/Grouping_and_Classification.md`; replaces T-17
 - [ ] T-22 Slice 4: `assemble_document` with simple attachment links, and the "Dokumente" view — needs T-21 — `docs/Grouping_and_Classification.md`
 - [ ] T-23 Slice 5: `find_sections` with `DOCUMENT_FEATURES` — needs T-22 — `docs/Grouping_and_Classification.md`
