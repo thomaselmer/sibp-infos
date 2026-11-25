@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 42 · 2026-11-25 · Task T-3
+Status: **draft** · Version 43 · 2026-11-25 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -403,7 +403,8 @@ stateDiagram-v2
   but no slot in its provider's lane when that is another provider (accepted for now).
 - **Open:** fallback when a model's result is too weak (stage 2); further mechanisms for rate limits.
 - **Real data** (Andreas, 2026-11-23): quality runs on the golden dataset may send real pages to the OpenAI API from
-  the local machine; prod stays blocked until the terms are checked (below).
+  the local machine, and from dev (Andreas, 2026-11-25, v43); prod stays blocked until the terms are checked
+  (below).
 - **AI flows with LangChain and LangGraph.** A job's task runs its flow (a LangChain call or a LangGraph graph) inside
   the worker and returns the job's typed result; flows never touch the database (section 5).
 - **Allowed providers** (A3): providers with processing in the EU and storage of the content excluded by contract,
@@ -682,6 +683,12 @@ through wrappers that will handle encryption later; today they pass data through
   does not enforce this yet (the folders are writable for the local user). **Exception** (Andreas, 2026-11-25,
   T-16): the recorder writes the recorded model answers into `recordings/` of `P82B_GOLDEN_DATASET_DIR`, and nothing
   else; the dataset fixture skips that folder (top-level folders are document types).
+- **Golden dataset on dev** (Andreas, 2026-11-25, v43): the golden dataset may be uploaded to dev (internal network)
+  and read there with the real models, as a project of its own on a tier large enough for it. The dev workers record
+  the answers while `MODEL_RECORDINGS` in their `.env` says so, into a volume of their host; copied into
+  `recordings/` of the golden dataset, they let local runs replay the dataset without tokens. A page whose image
+  renders differently locally (other library builds) has no recording and is recorded locally. Recordings follow
+  the prompt and answer schema: when they change (e.g. T-28), the affected recordings are outdated.
 - **Building it up** (Andreas, 2026-11-23): first run on the raw input, then Andreas reviews the results and reports
   findings in the terminal; corrections become tests first (below). The golden dataset grows from what he confirms.
 

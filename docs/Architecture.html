@@ -72,6 +72,7 @@ footer { font-size: 0.85rem; }
     <nav aria-label="Sections">
       <a href="#picture">Current picture</a>
       <a href="#open">Open decisions</a>
+      <a href="#v43">v43</a>
       <a href="#v42">v42</a>
       <a href="#v41">v41</a>
       <a href="#v40">v40</a>
@@ -276,8 +277,20 @@ footer { font-size: 0.85rem; }
     </table></div>
   </section>
 
+  <section id="v43">
+    <div class="head"><h2>v43</h2><span class="tag current">current</span><span class="muted">2026-11-25 · golden dataset on dev, recorded</span></div>
+    <div class="tablebox"><table>
+      <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td><span class="kind add">decided</span></td><td>The golden dataset may be uploaded to dev and read there with the real models; real pages go to the OpenAI API from dev too</td><td>Andreas, 2026-11-25: a full run on dev; was local only</td></tr>
+        <tr><td><span class="kind add">new</span></td><td>Dev workers record the model answers while <code>MODEL_RECORDINGS</code> in their <code>.env</code> says so, into the volume <code>recordings</code> of their host (shared by its workers); copied into <code>recordings/</code> of the golden dataset, local runs replay them</td><td>Andreas, 2026-11-25: the dev run pays the tokens once, local runs then need none</td></tr>
+        <tr><td><span class="kind add">new</span></td><td>Command <code>python -m app.tools.set_tier</code>: lists projects with their tier, moves one by name or id</td><td>The dataset has about 560 pages; Basis reads 165, Pro 550, so the project needs Enterprise; tiers cannot be chosen in the application yet</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
   <section id="v42">
-    <div class="head"><h2>v42</h2><span class="tag current">current</span><span class="muted">2026-11-25 · review fixes of the folder upload</span></div>
+    <div class="head"><h2>v42</h2><span class="tag">earlier</span><span class="muted">2026-11-25 · review fixes of the folder upload</span></div>
     <div class="tablebox"><table>
       <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
       <tbody>
