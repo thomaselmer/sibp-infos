@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 36 · 2026-11-25 · Task T-3
+Status: **draft** · Version 37 · 2026-11-25 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -476,9 +476,14 @@ MVP starts with engineering offices (D17); HEIC is not listed in V01 and would b
   - **Interrupted uploads** (Andreas, 2026-11-23, T-10): the browser sends the files itself, so leaving the page
     stops an upload; the page asks first. Dropping the same files again continues: files of the same name and size
     already in the project are skipped ("schon vorhanden"), pending ones continue in their own FILE with a new
-    signed URL. A pending upload not done `upload.abandon_after_seconds` after it began (YAML, at least the signed
-    URL validity) is abandoned: shown as such, no longer counted against the storage, and removed with whatever
-    reached Garage on the next upload to the project. **Open:** the order of continued files (today they move to
+    signed URL.
+  - **Sign of life** (Andreas, 2026-11-25): while it sends, the browser reports its running uploads alive, one
+    request per batch every `upload.alive_every_seconds` (30 s, YAML); beginning or continuing an upload counts as
+    one (FILE.upload_seen_at). A pending upload without a sign of life for `upload.stale_after_seconds` (2 minutes,
+    at least two intervals) is interrupted: shown as such, no longer counted against the storage, and removed with
+    whatever reached Garage on the next upload to the project. This holds across tabs and devices; the api cannot
+    see an upload going straight to Garage. Replaces the hour after the start, which kept reloaded uploads showing
+    as running and blocking the storage. **Open:** the order of continued files (today they move to
     the end; the order is in the file names for now) and the cleanup of other unreferenced files.
   - Page images are shown the same way: the api redirects to a short-lived signed URL.
   - The api is never blocked by large files.
@@ -495,7 +500,8 @@ MVP starts with engineering offices (D17); HEIC is not listed in V01 and would b
   database because the values will change. A tier holds the planned pages, a margin (10 %), and the storage for
   uploads. Starting values: Basis 150, Pro 500, Enterprise 1000 planned pages; storage = page limit × 10 MB × 2
   (about 3.3, 11 and 22 GB), enough for twice the pages as large photos, small enough that nobody can store
-  unlimited amounts. New projects get the default tier (Basis, a placeholder until plans are settled).
+  unlimited amounts. New projects get the default tier (Basis; kept for now, Andreas, 2026-11-25; to review with tenants, which may
+  bring a default per tenant).
   - The margin is a silent grace (Andreas, 2026-11-23): users see only the planned pages (e.g. 500); 503 pages are
     simply read, so nobody is tempted to aim for the margin. The api never sends the margin or the page limit;
     pages over the tier are reported as yes/no, without a count that would reveal it. After a run the counts of
