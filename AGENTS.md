@@ -33,7 +33,8 @@ This file states the rules for agents completely. Decisions with background are 
 3. **No AI material in the source submodule.** `the-real-and-final-paragraph82b/` holds only product artifacts —
    what would be there if no AI had been used. No AI instruction files, plans or notes, and no trace of AI tools,
    this repository's ADR IDs or its paths in files, commit messages, branch names, PR descriptions or code
-   comments there. Keep its README and other product artifacts consistent in the same task.
+   comments there. Exception: a `Co-Authored-By` line naming the AI model in a commit message is allowed. Keep its
+   README and other product artifacts consistent in the same task.
 4. **One source of truth.** Agent instructions live in `AGENTS.md` files; tool-specific files (e.g. `CLAUDE.md`)
    only point to them. Exception: `infos/CLAUDE.md`, which stays as it is.
 5. **English** for all files outside `infos/`.

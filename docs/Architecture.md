@@ -356,7 +356,8 @@ stateDiagram-v2
   of the model it calls (`max_parallel` of the model, else `default_max_parallel`), a fallback's call a slot of the
   fallback model, so a model's limit counts all its calls. A model without a free slot is not called: the job waits
   and is tried again later, like a rate limit. The slots are leases on the same Redis semaphore (own keys per model),
-  kept by a heartbeat for the length of the call.
+  kept by a heartbeat for the length of the call; a slot lost during the call (Redis unreachable longer than the
+  lease) is taken back, and if all are in use by then, the call finishes over the limit and this is logged.
 - **Taking a job is a lease too.** Taking moves the job atomically from the queue to the lane's in-flight set with an
   expiry; the worker's heartbeat extends it; acknowledging the result removes it. An expired lease (dead worker) puts
   the job back as queued (restart rule). Sorted sets do not bring this, so it is built into the queue code.
