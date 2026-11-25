@@ -12,6 +12,7 @@ This file states the rules for agents completely. Decisions with background are 
 | `infos/` | Thomas's concept — see "Concept area" below |
 | `decisions/` | ADRs `ADR-paragraph-82b-NNNN` |
 | `docs/` | Project documents: `Architecture.md` (software architecture), `Data_Model.md` (data model); final result only; the matching `.html` (`Architecture.html`, `Data_Model.html`) shows the history of versions and changes and is published as an artifact; `docs/agents/` maps the agent skills onto this repository |
+| `ideas/` | Ideas `I-<n>` that need further thought before they become a task |
 | `GLOSSARY.md` | Terms of the domain and the processing, each mapped to its concept term |
 | `TASKS.md` | Open work |
 | `the-real-and-final-paragraph82b/` | Application sources (submodule) |

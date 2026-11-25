@@ -5,13 +5,13 @@ Format and rules: "Tasks" in `AGENTS.md`.
 
 ## In progress
 - [ ] T-18 Plan the job types from embed_page up to classify_document (absorbs T-17 and the embedding part of T-15 once agreed) — plan in `docs/Grouping_and_Classification.md` — started 2026-11-25
-  Next: walk through the open questions Q1–Q12 with Andreas
+  Next: Q1–Q5, Q7 and the grouping rules decided (2026-11-25); open Q6, Q8–Q12; then data model v42 and architecture update
 - [ ] T-13 Page previews (WebP at ingest, one-off command for older pages, cache headers) and paged, collapsible groups: files by status, pages by classification — plan in `docs/Previews_and_Paging.md` — started 2026-11-25
   Next: T-16 done; test-first along the seams in the plan (vitest and Playwright now available); the end-to-end flow also checks the page groups by marker
 - [ ] T-11 Reach the dev environment directly: Caddy with HTTPS in front of the frontend (as a container), api and Garage; office addresses only, no login until A8 — started 2026-11-23
   Next: built and tested locally (submodule commit after `bbf2742`, Architecture v35); Andreas deploys on the dev host and opens the address; open: Let's Encrypt via DNS challenge (provider, token), DNS entry
 - [ ] T-10 Uploads survive interruptions: clear progress, warning before leaving, continue by name and size without duplicates, clean up abandoned uploads — started 2026-11-23
-  Next: sign of life decided (Architecture v37, data model v41); backend on submodule branch `upload-sign-of-life` (`e161188`), not merged; browser part (ping in `lib/upload.ts`) after T-16, then merge and push both together; open: order of continued uploads
+  Next: sign of life decided (Architecture v37, data model v41); backend on submodule branch `upload-sign-of-life` (`e161188`), not merged; browser part (ping in `lib/upload.ts`) after T-16, then merge and push both together; order of continued uploads: handled by T-19 (batch, order by path)
 - [ ] T-9 Container images and a distributed deployment: workers on a remote host via SSH tunnel (stopover), then hosts by role on the office network with automatic deploy from self-hosted runners (target) — started 2026-11-23
   Next: first automatic deploy to the core host green (runner on the core host, `P82B_CORE_HOST` set, `.env` at the runner's `~/paragraph82b-dev.env`); left: push the waiting submodule commits (up to `944ef51`), merge into `dev`, then deploy from `dev`
 - [ ] T-4 Proof of concept of the processing in the source submodule — thin slice first, measured against the golden dataset (`docs/Architecture.md`) — started 2026-11-18
@@ -24,6 +24,7 @@ Format and rules: "Tasks" in `AGENTS.md`.
 ## Blocked
 
 ## Open
+- [ ] T-19 Upload redesign: folder upload, `FILE.relative_path`, batch per "Verarbeitung starten", natural order by path within a batch, `PAGE.sequence`, upload into an existing document — needed before grouping (`docs/Grouping_and_Classification.md`)
 - [ ] T-17 Grouping: `decide_border` (borders from PAGE_FEATURES of the window), including the tier limit: from grouping on only pages up to the last document border within planned pages + margin go further (`docs/Architecture.md`, section 7)
 - [ ] T-14 File duplicate check: `check_file_duplicate` on `content_hash`, with the NOTE table to show suspected duplicates (`docs/Data_Model.md`)
 - [ ] T-15 Page duplicate check: `check_page_duplicate` on text and embedding; needs `embed_page` first
