@@ -4,6 +4,8 @@ Progress tracker only; keeps the next session oriented. Done keeps the last 10 e
 Format and rules: "Tasks" in `AGENTS.md`.
 
 ## In progress
+- [ ] T-18 Plan the job types from embed_page up to classify_document (absorbs T-17 and the embedding part of T-15 once agreed) — plan in `docs/Grouping_and_Classification.md` — started 2026-11-25
+  Next: walk through the open questions Q1–Q12 with Andreas
 - [ ] T-13 Page previews (WebP at ingest, one-off command for older pages, cache headers) and paged, collapsible groups: files by status, pages by classification — plan in `docs/Previews_and_Paging.md` — started 2026-11-25
   Next: T-16 done; test-first along the seams in the plan (vitest and Playwright now available); the end-to-end flow also checks the page groups by marker
 - [ ] T-11 Reach the dev environment directly: Caddy with HTTPS in front of the frontend (as a container), api and Garage; office addresses only, no login until A8 — started 2026-11-23
@@ -28,7 +30,7 @@ Format and rules: "Tasks" in `AGENTS.md`.
 - [ ] T-7 Fill in `config/prod.yaml` in the source submodule before the first deployment (left empty on purpose, 2026-11-23; `dev.yaml` filled in T-9)
 
 ## Done
-- [x] T-16 Frontend tests and recorded model answers — done 2026-11-25 — vitest (19), Playwright on a made-up mini Akt with the fake provider (4 flows), golden tier with recordings per model, local only, skipped with a note without the dataset (submodule `07c71b5`, `b55f421`; Architecture v38)
+- [x] T-16 Frontend tests and recorded model answers — done 2026-11-25 — vitest (19), Playwright on a made-up mini Akt with the fake provider (4 flows), golden tier with recordings per model, local only, skipped with a note without the dataset (submodule `07c71b5`, `b55f421`, review fixes `87b4a26`; Architecture v38)
 - [x] T-8 Garage with uploads straight from the browser, and tiers that limit storage and processed pages — done 2026-11-25 — built (submodule `6ac4125`, Architecture v33, data model v40); Basis stays the default for now; the border rule moved to T-17, pricing to T-1
 - [x] T-12 Limit parallel calls per model, fallbacks included — done 2026-11-25 — slot per model call incl. fallbacks, full model delays the job, provider semaphore stays (submodule `944ef51`, Architecture v36)
 - [x] T-6 Remove references to this repository from the source submodule — done 2026-11-23 — references removed from the code (submodule `31d40f8`); code map in Architecture section 4

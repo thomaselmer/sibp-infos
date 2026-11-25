@@ -60,7 +60,12 @@ replacements plug in there, the rest of the path (job pool, slots, lanes, worker
   runs live to done, pages open, markers give their classification; 3 re-sending a file skips it, no duplicate;
   4 on a long page only the content scrolls.
 
-## Built (submodule `07c71b5`, `b55f421`; Architecture v38)
+## Built (submodule `07c71b5`, `b55f421`, review fixes `87b4a26`; Architecture v38)
+- Without recordings the golden run is skipped with the note; calls without a current recording are named per model.
+- The outdated check covers prompt and answer schema. Image preparation is part of the lookup key, so a change
+  there shows as "missing", not "outdated", and old recordings stay beside the new ones; `max_turns` does not
+  change a single call. Open from the review, not done: unparsed answers are not recorded (a replay then reports
+  them missing), duplicated e2e config and test helpers, names (`api_`, `_logic`, `P`).
 - Classifications are not shown in the frontend yet; the end-to-end flow checks them once T-13 shows the page
   groups.
 - Page images are stored without a content type; browsers show them anyway. Set with the previews in T-13.
