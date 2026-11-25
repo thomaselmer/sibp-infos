@@ -9,7 +9,7 @@ Format and rules: "Tasks" in `AGENTS.md`.
 - [ ] T-10 Uploads survive interruptions: clear progress, warning before leaving, continue by name and size without duplicates, clean up abandoned uploads — started 2026-11-23
   Next: sign of life built, backend and browser (submodule `d7e566d`, `5c162af`; Architecture v37, data model v41), pushed; interrupt an upload on dev and see it shown as interrupted after 2 min, then done; order of continued uploads: handled by T-19 (batch, order by path)
 - [ ] T-9 Container images and a distributed deployment: workers on a remote host via SSH tunnel (stopover), then hosts by role on the office network with automatic deploy from self-hosted runners (target) — started 2026-11-23
-  Next: first automatic deploy to the core host green (runner on the core host, `P82B_CORE_HOST` set, `.env` at the runner's `~/paragraph82b-dev.env`); left: push the waiting submodule commits (up to `944ef51`), merge into `dev`, then deploy from `dev`
+  Next: first automatic deploy to the core host green (runner on the core host, `P82B_CORE_HOST` set, `.env` at the runner's `~/paragraph82b-dev.env`); submodule pushed up to `5c162af` and deployed; left: merge into `dev`, then deploy from `dev`
 - [ ] T-4 Proof of concept of the processing in the source submodule — thin slice first, measured against the golden dataset (`docs/Architecture.md`) — started 2026-11-18
   Next: job pool, ingest_file, api and frontend built; ocr_page and the stage reset (development tool) built (submodule `e5c3b95`); next: first run on the golden dataset, Andreas reviews the results and reports findings in the terminal; stage 2 fallback (result too weak) still open; title_* in T-20
 - [ ] T-3 Software architecture for the MVP, platform-wide — `docs/Architecture.md` (end result + history), decisions one by one with Andreas; data model also as `docs/Data_Model.md` — started 2026-11-18
@@ -21,6 +21,7 @@ Format and rules: "Tasks" in `AGENTS.md`.
 
 ## Open
 - [ ] T-26 Paged, collapsible groups: files by status on the upload page, pages by classification on the processing page, api paging and group filters — plan in `docs/Previews_and_Paging.md`; after T-19 (batches, paths, `PAGE.sequence`) and T-18 Q11 (document view)
+- [ ] T-27 Files before processing: one WebP preview per file (first page) made when the upload is confirmed, shown in the file list with the original on click; remove a file before processing (row, original, preview; `storage_used` goes down), processed files not yet; names of skipped files shown — same file table as T-26, build together; workflow to be confirmed by Thomas; open: removing a processed file (block, or remove its pages and results like a reset)
 - [ ] T-19 Upload redesign: folder upload, `FILE.relative_path`, batch per "Verarbeitung starten", natural order by path within a batch, `PAGE.sequence`, upload into an existing document — needed before grouping (`docs/Grouping_and_Classification.md`)
 - [ ] T-20 Slice 1: `embed_page` (text-embedding-3-small) and the 6 missing `title_*` features read by `ocr_page` on every page — `docs/Grouping_and_Classification.md`; takes the embedding part of T-15
 - [ ] T-21 Slice 3: `decide_border` with the tier limit, rules behind a replaceable decision seam, per batch — needs T-19 — `docs/Grouping_and_Classification.md`; replaces T-17
