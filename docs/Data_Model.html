@@ -70,6 +70,7 @@ footer { font-size: 0.85rem; }
       <a href="#glossary">Terms</a>
       <a href="#actions">User actions</a>
       <a href="#jobtypes">Job types</a>
+      <a href="#changes-v42">Changes v41 → v42</a>
       <a href="#changes-v41">Changes v40 → v41</a>
       <a href="#changes-v40">Changes v39 → v40</a>
       <a href="#changes-v39">Changes v38 → v39</a>
@@ -182,11 +183,12 @@ footer { font-size: 0.85rem; }
       <table>
         <thead><tr><th>Action</th><th>Invalidates</th><th>Orchestrator queues</th></tr></thead>
         <tbody>
-          <tr><td>Start run</td><td>–</td><td>Everything whose precondition is met</td></tr>
+          <tr><td>Start run</td><td>–</td><td>Everything whose precondition is met; every ready file without a batch gets the next batch number (v42)</td></tr>
           <tr><td>Cancel</td><td>Nothing; the pool is cleared and the orchestrator adds nothing new; at most some token usage remains. No cancel of single jobs (Andreas, 2026-11-17)</td><td>–</td></tr>
           <tr><td>Rerun</td><td>Everything (with warning)</td><td>Everything, from OCR</td></tr>
           <tr><td>Reset to before a job type (development tool; only with <code>stage_reset</code> in local and dev, never in prod)</td><td>That job type and every later one: their results and jobs are deleted (Andreas, 2026-11-23)</td><td>Nothing; Start run queues them again</td></tr>
-          <tr><td>Upload files</td><td>–</td><td>OCR of the new pages, then grouping of the new pages</td></tr>
+          <tr><td>Upload files</td><td>–</td><td>OCR of the new pages; grouping of the new pages per batch on the next start (v42)</td></tr>
+          <tr><td>Upload files into a document</td><td>The page, then its document as far as the page influences it</td><td>The steps the new pages need (OCR, embedding …), then the document; the user chooses the place in the document; no batch, no grouping (Andreas, 2026-11-25, v42)</td></tr>
           <tr><td>Remove file</td><td>Its pages, then as "remove page"</td><td>Rebuild of affected documents</td></tr>
           <tr><td>Remove page</td><td>Its document from sections down</td><td>Same</td></tr>
           <tr><td>Reorder pages in a document</td><td>That document from sections down</td><td>Same</td></tr>
@@ -234,24 +236,49 @@ footer { font-size: 0.85rem; }
       <table>
         <thead><tr><th>Job type</th><th>Per</th><th>Reads</th><th>Writes</th><th>Precondition</th><th>Follow-up candidates</th></tr></thead>
         <tbody>
-          <tr><td><code>ingest_file</code></td><td>File</td><td>File</td><td>Pages (image, index in file, position)</td><td>File uploaded</td><td><code>ocr_page</code> per page; <code>check_file_duplicate</code></td></tr>
+          <tr><td><code>ingest_file</code></td><td>File</td><td>File</td><td>Pages (image, index in file, sequence)</td><td>File uploaded</td><td><code>ocr_page</code> per page; <code>check_file_duplicate</code></td></tr>
           <tr><td><code>check_file_duplicate</code></td><td>File</td><td><code>content_hash</code></td><td>Note if suspected</td><td><code>ingest_file</code> done</td><td>–</td></tr>
           <tr><td><code>ocr_page</code></td><td>Page</td><td>Page image</td><td>Text, <code>PAGE_FEATURES</code>, classification; turned image if needed (turn, save, read again inside the job)</td><td>Page exists</td><td><code>embed_page</code> (if process); <code>decide_border</code> for each border whose window holds the page; <code>check_page_duplicate</code></td></tr>
           <tr><td><code>embed_page</code></td><td>Page</td><td>Text</td><td><code>PAGE.embedding</code></td><td><code>ocr_page</code> done</td><td>–</td></tr>
           <tr><td><code>check_page_duplicate</code></td><td>Page</td><td>Text and embedding of pages</td><td>Note if suspected</td><td><code>embed_page</code> done</td><td>–</td></tr>
-          <tr><td><code>decide_border</code></td><td>Pair of neighbouring pages</td><td><code>PAGE_FEATURES</code> of the window</td><td><code>border_before</code>, <code>border_score</code>, <code>border_rules</code></td><td><code>ocr_page</code> done for every page in the window</td><td><code>assemble_document</code> once a stretch has decided borders at both ends</td></tr>
-          <tr><td><code>assemble_document</code></td><td>Stretch of pages</td><td>Pages, borders</td><td>Document; <code>document_id</code>, <code>position</code> on its pages</td><td>Both borders decided</td><td><code>find_sections</code>; <code>check_document_duplicate</code></td></tr>
+          <tr><td><code>decide_border</code></td><td>Pair of neighbouring pages within a batch</td><td><code>PAGE_FEATURES</code> of the window (<code>discard</code> pages skipped), separator between, folder change</td><td><code>border_before</code>, <code>border_score</code>, <code>border_rules</code></td><td><code>ocr_page</code> done for every page in the window</td><td><code>assemble_document</code> once a stretch has decided borders at both ends</td></tr>
+          <tr><td><code>assemble_document</code></td><td>Stretch of pages</td><td>Pages, borders</td><td>Document; <code>document_id</code>, <code>position</code> on its pages; <code>attached_to_document_id</code> for <code>keep</code> documents</td><td>Both borders decided (a batch's last page counts as a border once all its pages are read)</td><td><code>find_sections</code>; <code>check_document_duplicate</code></td></tr>
           <tr><td><code>check_document_duplicate</code></td><td>Document</td><td>Texts of documents</td><td>Note if suspected</td><td><code>assemble_document</code> done</td><td>–</td></tr>
           <tr><td><code>find_sections</code></td><td>Document</td><td>Document text, title-page features</td><td>Sections; <code>DOCUMENT_FEATURES</code> (authority or not, which sections were found)</td><td><code>assemble_document</code> done</td><td><code>classify_document</code></td></tr>
-          <tr><td><code>classify_document</code></td><td>Document</td><td><code>DOCUMENT_FEATURES</code>, pages</td><td><code>document_type</code>, <code>short_title</code>, <code>stated_date</code>, reference numbers (new, or linked to one without document)</td><td><code>find_sections</code> done</td><td><code>extract_keyinfos</code> per relevant section; <code>check_reference_numbers</code></td></tr>
+          <tr><td><code>classify_document</code></td><td>Document</td><td><code>DOCUMENT_FEATURES</code>, <code>title_*</code> of the first page, pages</td><td><code>document_type</code>, <code>short_title</code>, <code>stated_date</code>, reference numbers (new, or linked to one without document)</td><td><code>find_sections</code> done</td><td><code>extract_keyinfos</code> per relevant section; <code>check_reference_numbers</code></td></tr>
           <tr><td><code>check_reference_numbers</code></td><td>Project</td><td>Reference numbers, dates</td><td>Notes (possible duplicates, date conflicts)</td><td>A reference number added or changed</td><td>–</td></tr>
           <tr><td><code>extract_keyinfos</code></td><td>Section</td><td>Section text</td><td>Key infos (verbatim, page and line)</td><td><code>classify_document</code> done</td><td><code>embed_keyinfo</code> per key info; later steps to be decided</td></tr>
           <tr><td><code>embed_keyinfo</code></td><td>Key info</td><td>Text</td><td><code>KEYINFO.embedding</code></td><td><code>extract_keyinfos</code> done</td><td>–</td></tr>
         </tbody>
       </table>
     </div>
-    <p class="muted"><strong>Decided (Andreas, 2026-11-23), <code>ocr_page</code>:</strong> it records what is on the page; grouping (<code>decide_border</code>) and document classification interpret it and make no calls of their own on the page image. It fills text on every page, all <code>PAGE_FEATURES</code> including the per-page judgments later steps take as input (<code>indicates_*</code>, <code>is_text_document</code>, <code>is_construction_plan</code>, <code>is_irrelevant</code>), <code>document_type_hint</code> and the page's classification; the <code>title_*</code> features are decided later. A page is turned at most twice. PDFs are split into pages and read like photos. Deviation from the concept (V03: no text on plans, plant photos and irrelevant pages), to settle with Thomas: text on every page.</p>
+    <p class="muted"><strong>Decided (Andreas, 2026-11-23), <code>ocr_page</code>:</strong> it records what is on the page; grouping (<code>decide_border</code>) and document classification interpret it and make no calls of their own on the page image. It fills text on every page, all <code>PAGE_FEATURES</code> including the per-page judgments later steps take as input (<code>indicates_*</code>, <code>is_text_document</code>, <code>is_construction_plan</code>, <code>is_irrelevant</code>), <code>document_type_hint</code> and the page's classification; it also reads all <code>title_*</code> features on every page (Andreas, 2026-11-25, v42). A page is turned at most twice. PDFs are split into pages and read like photos. Deviation from the concept (V03: no text on plans, plant photos and irrelevant pages), to settle with Thomas: text on every page.</p>
     <p class="muted">Decided (Andreas, 2026-11-17): page turning stays inside <code>ocr_page</code>; duplicate checks are separate job types per level (file, page, document). <strong>Decided (Andreas, 2026-11-17):</strong> <code>find_sections</code> runs before the type is known: every document first gets a root section over the whole document, then all candidate section types are looked for beneath it; what was found is reported in <code>DOCUMENT_FEATURES</code>, which <code>classify_document</code> and later steps use.</p>
+    <p class="muted"><strong>Decided (Andreas, 2026-11-25, v42), grouping:</strong> grouping runs per batch, the files of one press of "Verarbeitung starten"; within a batch the api orders the files by relative path. The batch's first page and every change between process and <code>keep</code> pages (<code>discard</code> pages skipped) and between photos and PDF pages (v32) are fixed borders. <code>discard</code> pages belong to no document; a skipped <code>discard</code> page ("separator between") and a change of folder are weak inputs only. <code>keep</code> pages form documents of their own; <code>assemble_document</code> attaches each to the process document right before it (<code>DOCUMENT.attached_to_document_id</code>); a later batch never joins an older document. The border decision and the type decision sit behind a seam each, so a trained model can replace the rules later. Plan and reasons: <code>Grouping_and_Classification.md</code>.</p>
+  </section>
+
+  <section id="changes-v42">
+    <div class="head"><h2>Changes v41 → v42</h2><span class="tag">2026-11-25</span></div>
+    <div class="tablebox">
+      <table>
+        <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td class="kind add">new</td><td><code>PAGE.sequence</code>: the page's place in the original Akt (concept A02); set from the batch order, never changed by moves; a page uploaded into a document gets the place the user chose (sparse numbering)</td><td>Andreas, 2026-11-25: the Akt can always be shown in the order it was photographed, pages misfiled in the original stay visible; revises v17</td></tr>
+          <tr><td class="kind chg">changed</td><td><code>PAGE.position</code>: the place within its document, set by grouping, changed by moves (was: upload order, restarting at each border)</td><td>Follows from <code>sequence</code> (Andreas, 2026-11-25)</td></tr>
+          <tr><td class="kind add">new</td><td><code>FILE.relative_path</code>: path within an uploaded folder; confidential</td><td>Andreas, 2026-11-25: folder uploads keep their order</td></tr>
+          <tr><td class="kind add">new</td><td><code>FILE.batch</code>: set on "Verarbeitung starten" for every ready file without one; empty for files uploaded into a document. Grouping runs per batch; the batch's first page is a fixed border, its last page closes its last document once all its pages are read; a later batch never joins an older document</td><td>Andreas, 2026-11-25: users upload in several goes, then start; the unit is their own click</td></tr>
+          <tr><td class="kind chg">changed</td><td><code>FILE.upload_position</code>: order within the batch, set by the api by relative path (natural sort), upload time breaks ties (was: order within the upload)</td><td>Andreas, 2026-11-25: the browser's order is not reliable</td></tr>
+          <tr><td class="kind add">new</td><td><code>DOCUMENT.attached_to_document_id</code>: the main document of an attachment; <code>keep</code> pages form documents of their own, attached by <code>assemble_document</code> to the <code>process</code> document right before them</td><td>Andreas, 2026-11-25: attachments are documents of their own with a link; one parent for now</td></tr>
+          <tr><td class="kind add">new</td><td><code>DOCUMENT.duplicate_of_document_id</code>: the original of a duplicate; the duplicate keeps its own parent link</td><td>Andreas, 2026-11-25: no attachment with several mains; the link shows where the copy was filed</td></tr>
+          <tr><td class="kind chg">decided</td><td><code>ocr_page</code> reads all 11 <code>title_*</code> features on every page</td><td>Andreas, 2026-11-25: same complete features on every page, as a trained model needs; replaces "decided later" (v39)</td></tr>
+          <tr><td class="kind chg">decided</td><td><code>decide_border</code>: <code>discard</code> pages skipped; fixed borders at batch starts, between <code>process</code> and <code>keep</code> and between photos and PDF pages (v32); weak inputs "separator between" and "folder change"</td><td>Andreas, 2026-11-25</td></tr>
+          <tr><td class="kind add">new</td><td>User action "Upload files into a document"; "Start run" assigns the batch; grouping of new uploads per batch</td><td>Andreas, 2026-11-25</td></tr>
+          <tr><td class="kind chg">decided</td><td>Border and type decisions sit behind a seam each, replaceable by a trained model</td><td>Andreas, 2026-11-25</td></tr>
+          <tr><td class="kind chg">decided</td><td>Until <code>NOTE</code> is built (T-24), a low border confidence is only marked in the documents view</td><td>Amends v31</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="muted">Plan and reasons: <code>Grouping_and_Classification.md</code> (T-18).</p>
   </section>
 
   <section id="changes-v41">
@@ -731,7 +758,7 @@ footer { font-size: 0.85rem; }
         <tbody>
           <tr><td><code>PROJECT</code>, <code>USER</code>, <em>TENANT</em></td><td><strong>Out of scope (Andreas, 2026-11-17):</strong> tenants, plans and roles per tenant hardly affect how a project is processed, so this model leaves them out. <code>USER</code>, <code>PROJECT</code> and <code>PROJECT_ACCESS</code> stay as placeholders. Tenant, plan, roles and project master data (Branche, onboarding answers) are modelled separately later.</td><td>Concept D43, D05, D06, D10</td></tr>
           <tr><td><code>DOCUMENT</code></td><td><s>Short title</s>: <code>short_title</code>, v32. <s>Document-level duplicate</s>: <code>duplicate_state</code>, v18. <s>Empty Bescheid as document without pages</s>: replaced by a <code>REFERENCE_NUMBER</code> without document, v12</td><td>Prototype, D04</td></tr>
-          <tr><td><code>PAGE</code></td><td><s><code>sequence</code></s>: not needed, decided in v17. <s>Embedding</s>: on the page, decided in v15</td><td>A02, V03</td></tr>
+          <tr><td><code>PAGE</code></td><td><s><code>sequence</code></s>: position per document in v17; <code>sequence</code> reintroduced as the place in the original Akt, v42. <s>Embedding</s>: on the page, decided in v15</td><td>A02, V03</td></tr>
           <tr><td><code>DOCUMENT_SECTION</code></td><td><strong>Decided (Andreas, 2026-11-17):</strong> section types depend on the document type. Bescheide and Verhandlungsschriften have a clear, predictable layout, so a fixed set of types is looked for (prototype: Gegenstand, Stellungnahme, Bescheid/Spruch, Auflagen, Verfahrenskosten, Rechtsmittelbelehrung, Rechtsgrundlage, …). <strong>Every document</strong> (authority or not) gets a root section over the whole document; further sections sit beneath it (Andreas, 2026-11-17). Consequence: every document has at least one section, so a key info from a document always has a <code>source_section_id</code>. The allowed types per document type live in the code configuration for now (Andreas, 2026-11-17).</td><td>D04, V06</td></tr>
           <tr><td><code>REQUIREMENT</code></td><td><s>Auflage number</s> (added in v7); <s><code>superseded_by</code></s>: no column. <strong>Decided (Andreas, 2026-11-17):</strong> when a Bescheid repeats requirements of a Verhandlungsschrift, the Bescheid passage becomes a key info whose evidence has one claim per repeated requirement. All evidence already matched to the Verhandlungsschrift requirement moves to the Bescheid requirement, the more relevant document. This evidence gets the new kind <strong>ersetzt</strong>, which ends the old requirement like hinfällig (Andreas, 2026-11-17). <strong>Decided (Andreas, 2026-11-17):</strong> ersetzt is preferably set on the parent requirement, which fits the domain better; the model also allows it on single child requirements. A Verhandlungsschrift requirement the Bescheid does not repeat stays an open requirement and is evaluated like any other. <s>origin when there is no key info</s> (always a key info, v21); <s><code>derived_from</code></s>: not needed. <strong>Decided (Andreas, 2026-11-17):</strong> a sub-requirement keeps its own key info (verbatim, e.g. a Brandschutzplan point) and its parent; which evidence led to it is traced through the document (its key info and the evidence's key info sit in the same document). <s>subject category</s>: kept, v22</td><td>V10, D04, D42</td></tr>
           <tr><td><code>EVIDENCE_CLAIM</code></td><td><s>Raw Geschäftszahl and date on the claim</s>: not needed, decided in v7</td><td>V10, D04</td></tr>
@@ -867,7 +894,7 @@ footer { font-size: 0.85rem; }
     <ul>
       <li><s>Keeping history</s>: no soft delete, deleting is final after a confirmation; soft delete loses the cascade (v32).</li>
       <li><s><code>DOCUMENT</code> short title</s>: generated, v32.</li>
-      <li><s>Mixed sources</s>: a document may hold pages from several files, e.g. several photos; a photo series does not continue a PDF document (v32).</li>
+      <li><s>Mixed sources</s>: a document may hold pages from several files, e.g. several photos; a photo series does not continue a PDF document (v32); a change between photos and PDF pages is a fixed border (v42).</li>
     </ul>
 
     <p class="eyebrow">Deferred until the steps before them work (Andreas, 2026-11-17)</p>
@@ -907,7 +934,7 @@ footer { font-size: 0.85rem; }
       </li>
       <li><strong>Status is calculated, not stored (Andreas, 2026-11-16):</strong> from the matched evidence (<code>EVIDENCE.kind</code> via the claims) and the child requirements. <code>EVIDENCE.kind</code> holds what a passage says. Newer information counts more; "newer" means the date stated in the document, not the upload date.</li>
       <li><strong>Parent status (Andreas, 2026-11-17):</strong> a parent with its own terminating status (erfüllt, hinfällig, ersetzt) keeps it and does not look at its children. Otherwise its status is strictly the worst child status; its own non-terminating evidence no longer counts. Reason: there can always be newer information not found yet. Order from worst to best: nicht erfüllt &lt; mangelhaft &lt; teilweise erfüllt &lt; ersetzt &lt; hinfällig &lt; erfüllt. Example: children {nicht erfüllt, erfüllt} give nicht erfüllt.</li>
-      <li><strong>Borders (Andreas, 2026-11-17):</strong> <code>border_score</code> is a confidence (0 to 1); <code>border_rules</code> keeps the rules that fired; no grey-zone value, a low confidence creates a note (v31).</li>
+      <li><strong>Borders (Andreas, 2026-11-17):</strong> <code>border_score</code> is a confidence (0 to 1); <code>border_rules</code> keeps the rules that fired; no grey-zone value, a low confidence creates a note (v31); until <code>NOTE</code> is built (T-24) a low confidence is only marked in the documents view (v42).</li>
     </ol>
 
     <p class="eyebrow">Solved in later versions</p>
@@ -916,7 +943,7 @@ footer { font-size: 0.85rem; }
       <li><s>Document lacks Geschäftszahl and date; several per document</s>: <code>REFERENCE_NUMBER</code> v9–v12, <code>DOCUMENT.stated_date</code> v6.</li>
       <li><s>No author or context on <code>KEYINFO</code></s>: <code>author_user_id</code> v4; comments via <code>NOTE</code> and <code>NOTE_TARGET</code>, v13.</li>
       <li><s>No event log</s>: <code>EVENT</code>, v26.</li>
-      <li><s>Order of pages, <code>sequence</code></s>: <code>position</code> is enough, v17.</li>
+      <li><s>Order of pages</s>: <code>position</code> within the document, v17; <code>sequence</code> as the place in the original Akt, v42.</li>
       <li><s>Embedding per page</s>: column on <code>PAGE</code>, v15.</li>
       <li><s>Job target link or dependency table</s>: both, <code>JOB_TARGET</code> v24 and <code>JOB_DEPENDENCY</code> v28.</li>
       <li><s>Requirement side (v3 list)</s>: number v7; status calculated (v5); <code>superseded_by</code> replaced by kind ersetzt, v22; origin always a key info, v21; <code>derived_from</code> not needed. Override marker and reasoning: deferred (see above).</li>
@@ -925,8 +952,356 @@ footer { font-size: 0.85rem; }
     </ul>
   </section>
 
+  <section id="v42">
+    <div class="head"><h2>v42</h2><span class="tag current">current draft</span><span class="muted">grouping per batch, page sequence, attachments</span></div>
+    <div class="diagram">
+<pre class="mermaid">
+erDiagram
+    USER ||--o{ PROJECT : owns
+    TIER ||--o{ PROJECT : limits
+    USER ||--o{ PROJECT_ACCESS : receives
+    PROJECT ||--o{ PROJECT_ACCESS : grants
+
+    PROJECT ||--o{ FILE : receives
+    USER o|--o{ FILE : uploads
+    FILE ||--|{ PAGE : yields
+    PROJECT ||--o{ DOCUMENT : contains
+    DOCUMENT o|--o{ PAGE : groups
+    DOCUMENT ||--o| DOCUMENT_FEATURES : described_by
+    DOCUMENT o|--o{ DOCUMENT : attaches
+    DOCUMENT o|--o{ DOCUMENT : duplicate_of
+    PAGE ||--o| PAGE_FEATURES : described_by
+
+    PROJECT ||--o{ REFERENCE_NUMBER : knows
+    DOCUMENT o|--o{ REFERENCE_NUMBER : carries
+
+    DOCUMENT ||--o{ DOCUMENT_SECTION : has
+    DOCUMENT_SECTION o|--o{ DOCUMENT_SECTION : parent_of
+    PAGE ||--o{ DOCUMENT_SECTION : start_boundary
+    PAGE ||--o{ DOCUMENT_SECTION : end_boundary
+
+    PROJECT ||--o{ KEYINFO : contains
+    DOCUMENT_SECTION o|--o{ KEYINFO : originates
+    PAGE o|--o{ KEYINFO : starts
+    PAGE o|--o{ KEYINFO : ends
+    USER o|--o{ KEYINFO : authors
+
+    KEYINFO ||--o{ REQUIREMENT : stated_as
+    REQUIREMENT o|--o{ REQUIREMENT : parent_of
+    KEYINFO ||--o{ EVIDENCE : used_as
+
+    EVIDENCE ||--|{ EVIDENCE_CLAIM : claims
+    REFERENCE_NUMBER o|--o{ EVIDENCE_CLAIM : targets
+    REQUIREMENT o|--o{ EVIDENCE_CLAIM : matched_by
+
+    PROJECT ||--o{ NOTE : has
+    USER o|--o{ NOTE : resolves
+    NOTE ||--|{ NOTE_TARGET : concerns
+    DOCUMENT o|--o{ NOTE_TARGET : target
+    FILE o|--o{ NOTE_TARGET : target
+    PAGE o|--o{ NOTE_TARGET : target
+    REFERENCE_NUMBER o|--o{ NOTE_TARGET : target
+    KEYINFO o|--o{ NOTE_TARGET : target
+    REQUIREMENT o|--o{ NOTE_TARGET : target
+    EVIDENCE_CLAIM o|--o{ NOTE_TARGET : target
+
+    PROJECT ||--o{ EVENT : records
+    USER o|--o{ EVENT : triggers
+    PROJECT ||--o{ JOB : has
+    JOB ||--|{ JOB_TARGET : uses
+    JOB ||--o{ JOB_DEPENDENCY : waits_for
+    JOB ||--o{ JOB_DEPENDENCY : needed_by
+    FILE o|--o{ JOB_TARGET : target
+    PAGE o|--o{ JOB_TARGET : target
+    DOCUMENT o|--o{ JOB_TARGET : target
+    DOCUMENT_SECTION o|--o{ JOB_TARGET : target
+    KEYINFO o|--o{ JOB_TARGET : target
+    REQUIREMENT o|--o{ JOB_TARGET : target
+    EVIDENCE_CLAIM o|--o{ JOB_TARGET : target
+    PROJECT ||--o{ TOKEN_USAGE : costs
+    JOB o|--o{ TOKEN_USAGE : records
+
+    USER {
+        uuid id PK
+        string name
+        string email
+        string role
+        string pwd_hash
+    }
+
+    TIER {
+        uuid id PK
+        string name "unique, e.g. basis"
+        string label "shown, e.g. Basis"
+        int planned_pages
+        int page_margin_percent "pages read: planned plus margin"
+        bigint max_project_bytes "storage for uploads"
+        bool is_default "new projects get it; exactly one"
+    }
+    PROJECT {
+        uuid id PK
+        uuid owner_user_id FK
+        uuid tier_id FK
+        string name
+        string address
+        datetime created_at
+        datetime updated_at
+        datetime deleted_at
+    }
+
+    PROJECT_ACCESS {
+        uuid id PK
+        uuid project_id FK
+        uuid user_id FK
+        string access_tier
+    }
+
+    FILE {
+        uuid id PK
+        uuid project_id FK
+        uuid uploaded_by_user_id FK "nullable"
+        string file_type "image or pdf"
+        string original_name "confidential"
+        string path
+        string relative_path "nullable, path within an uploaded folder; confidential"
+        bigint size_bytes "declared on upload, checked against the stored file"
+        string upload_state "pending or ready"
+        string content_hash "nullable until ready"
+        int page_count "nullable until ready"
+        int upload_position "order within the batch, set by the api by relative path"
+        int batch "nullable, set on Verarbeitung starten; empty when uploaded into a document"
+        string duplicate_state "nullable, original or duplicate"
+        datetime uploaded_at
+        datetime upload_seen_at "last sign of life of a pending upload"
+    }
+
+    PAGE {
+        uuid id PK
+
+        uuid project_id FK "every content row carries its project"
+        uuid file_id FK
+        uuid document_id FK "nullable"
+        int file_page_index "0 for an image"
+        int position "place within its document; set by grouping, changed by moves"
+        int sequence "place in the original Akt; set from the batch order, never changed by moves"
+        string image_path "rendered or rotated version"
+        string classification "process, keep, discard; set by ocr_page"
+        string border_before "open, new_document, continuation"
+        float border_score "nullable, confidence 0 to 1 that border_before is right"
+        jsonb border_rules "nullable, names and points of the rules that fired"
+        string duplicate_state "nullable, original or duplicate"
+        text text "OCR text of this page; confidential"
+        vector embedding "nullable, from text"
+        string embedding_model "nullable, model of the vector"
+    }
+
+    PAGE_FEATURES {
+        uuid id PK
+        uuid page_id FK "one per page"
+        int page_number "nullable, as printed"
+        int total_page_number "nullable, of x"
+        string reference_number_raw "nullable, as read on the page"
+        date date "nullable, as read on the page"
+        string document_type_hint "nullable, the likely kind of the page (concept kinds, D04, V03)"
+        bool is_text_document
+        bool is_construction_plan
+        bool is_irrelevant
+        bool has_letterhead
+        bool has_subject
+        bool has_stamp
+        bool indicates_new_document
+        bool indicates_finished_document
+        bool indicates_continuation
+        bool title_authority "nullable until read; all title_ features read on every page"
+        bool title_reference_number "nullable"
+        bool title_gegenstand_der_amtshandlung "nullable"
+        bool title_ort_der_amtshandlung "nullable"
+        bool title_beginn_der_amtshandlung "nullable"
+        bool title_verhandlungsleiter "nullable"
+        bool title_anwesende_personen "nullable"
+        bool title_verhandlungsschrift "nullable"
+        bool title_bescheid "nullable"
+        bool title_spruch "nullable"
+        bool title_betreff "nullable"
+    }
+
+    DOCUMENT_FEATURES {
+        uuid id PK
+        uuid document_id FK "one per document"
+        bool is_authority_document
+        string subtype_hint "nullable, e.g. email, data sheet"
+        bool has_gegenstand
+        bool has_organe
+        bool has_verhandlungsleiter
+        bool has_verfahrensanordnung
+        bool has_stellungnahme
+        bool has_auflagen
+        bool has_bescheid_spruch
+        bool has_rechtsgrundlage
+        bool has_rechtsmittelbelehrung
+        bool has_verfahrenskosten
+        bool has_ergeht_an
+    }
+
+    DOCUMENT {
+        uuid id PK
+        uuid project_id FK
+        uuid attached_to_document_id FK "nullable, main document of an attachment"
+        uuid duplicate_of_document_id FK "nullable, original of a duplicate"
+        string document_type
+        string short_title "nullable, generated; confidential"
+        date stated_date "nullable, date written in the document"
+        string duplicate_state "nullable, original or duplicate"
+    }
+
+    REFERENCE_NUMBER {
+        uuid id PK
+        uuid project_id FK
+        uuid document_id FK "nullable, null = document missing"
+        string raw "as read"
+        string normalized "unique per project"
+        date stated_date "nullable, known date; also from a Pruefdokument when the document is missing"
+    }
+
+    DOCUMENT_SECTION {
+        uuid id PK
+        uuid document_id FK
+        uuid parent_section_id FK
+        uuid start_page_id FK
+        uuid end_page_id FK
+        int start_line
+        int end_line
+        string section_type
+    }
+
+    KEYINFO {
+        uuid id PK
+        uuid project_id FK
+        uuid source_section_id FK "nullable"
+        uuid start_page_id FK "nullable"
+        uuid end_page_id FK "nullable"
+        uuid author_user_id FK "nullable, set for comments"
+        int start_line "nullable"
+        int end_line "nullable"
+        string creation_method "extraction, agent, user, onboarding"
+        text text "verbatim document text, stored copy; confidential"
+        vector embedding "nullable, from text"
+        string embedding_model "nullable, model of the vector"
+    }
+
+    REQUIREMENT {
+        uuid id PK
+        uuid keyinfo_id FK
+        uuid parent_requirement_id FK "nullable"
+        string point_raw "nullable, as written, e.g. 4.2, IV, b)"
+        int point "nullable, last level as integer"
+        string category "nullable, 13 subject categories"
+        interval time_interval "nullable"
+        text summary "generated; confidential"
+    }
+
+    EVIDENCE {
+        uuid id PK
+        uuid keyinfo_id FK
+        string kind "erfuellt, teilweise, mangelhaft, nicht_erfuellt, hinfaellig, ersetzt"
+        text summary "generated; confidential"
+    }
+
+    EVIDENCE_CLAIM {
+        uuid id PK
+        uuid evidence_id FK
+        uuid target_reference_number_id FK "nullable"
+        uuid requirement_id FK "nullable, null = not matched"
+        string target_point_raw "nullable, as written"
+        int target_point "nullable, last level as integer"
+        string matched_by "code, llm, user"
+    }
+
+    NOTE {
+        uuid id PK
+        uuid project_id FK
+        uuid resolved_by_user_id FK "nullable"
+        string severity
+        string status "open, resolved"
+        text text "confidential"
+        text resolution "nullable, what was decided; confidential"
+        datetime created_at
+        datetime resolved_at "nullable"
+    }
+
+    NOTE_TARGET {
+        uuid id PK
+        uuid note_id FK
+        uuid document_id FK "nullable"
+        uuid file_id FK "nullable"
+        uuid page_id FK "nullable"
+        uuid reference_number_id FK "nullable"
+        uuid keyinfo_id FK "nullable"
+        uuid requirement_id FK "nullable"
+        uuid evidence_claim_id FK "nullable"
+    }
+
+    EVENT {
+        uuid id PK
+        uuid project_id FK
+        uuid user_id FK "nullable, set for user events"
+        string origin "user or autonomous"
+        string event_type "user actions and events meaningful to the user; no job_done"
+        jsonb details "ids and labels of the objects concerned, roles (from, to), old and new values; confidential"
+        datetime created_at
+        datetime processed_at "nullable"
+    }
+
+    JOB_DEPENDENCY {
+        uuid id PK
+        uuid job_id FK "the waiting job"
+        uuid depends_on_job_id FK "must be done first"
+    }
+
+    JOB_TARGET {
+        uuid id PK
+        uuid job_id FK
+        string access "read or write"
+        uuid file_id FK "nullable"
+        uuid page_id FK "nullable"
+        uuid document_id FK "nullable"
+        uuid section_id FK "nullable"
+        uuid keyinfo_id FK "nullable"
+        uuid requirement_id FK "nullable"
+        uuid evidence_claim_id FK "nullable"
+    }
+
+    JOB {
+        uuid id PK
+        uuid project_id FK
+        string job_type "task to run; preconditions per type in code"
+        string status "waiting, queued, done, failed"
+        int priority "0 fast lane (Apply changes), 1 normal"
+        int attempts
+        int timeout_seconds "raised on retry"
+        string worker_id "nullable, from the result"
+        text error "nullable"
+        datetime created_at
+        datetime started_at "nullable, from the result"
+    }
+
+    TOKEN_USAGE {
+        uuid id PK
+        uuid project_id FK
+        uuid job_id FK "nullable, cleared when the job is deleted"
+        string job_type "kept when the job is gone"
+        datetime created_at
+        int input
+        int reasoning
+        int output
+        string model
+    }
+</pre>
+    </div>
+  </section>
+
   <section id="v41">
-    <div class="head"><h2>v41</h2><span class="tag current">current draft</span><span class="muted">sign of life of uploads</span></div>
+    <div class="head"><h2>v41</h2><span class="tag">earlier</span><span class="muted">sign of life of uploads</span></div>
     <div class="diagram">
 <pre class="mermaid">
 erDiagram

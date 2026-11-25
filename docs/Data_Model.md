@@ -1,6 +1,6 @@
 # paragraph82b — Data Model
 
-Status: **draft** · current version **v41** · 2026-11-25
+Status: **draft** · current version **v42** · 2026-11-25
 
 Final result only: this file shows the current model. How it got here (all versions and changes) is in `Data_Model.html`, published as an artifact: https://claude.ai/artifact/EHPCd6tJNDvKj14RwmwSH6. English names, each mapped to a concept term (see `GLOSSARY.md`). How the software works (orchestrator, workers, monitoring) is in [`Architecture.md`](Architecture.md).
 
@@ -18,11 +18,12 @@ An orchestrator reacts to events (job finished, user action), checks each job ty
 
 | Action | Invalidates | Orchestrator queues |
 |---|---|---|
-| Start run | – | Everything whose precondition is met |
+| Start run | – | Everything whose precondition is met; every ready file without a batch gets the next batch number (v42) |
 | Cancel | Nothing; the pool is cleared and the orchestrator adds nothing new; at most some token usage remains. No cancel of single jobs (Andreas, 2026-11-17) | – |
 | Rerun | Everything (with warning) | Everything, from OCR |
 | Reset to before a job type (development tool; only with `stage_reset` in local and dev, never in prod) | That job type and every later one: their results and jobs are deleted (Andreas, 2026-11-23) | Nothing; Start run queues them again |
-| Upload files | – | OCR of the new pages, then grouping of the new pages |
+| Upload files | – | OCR of the new pages; grouping of the new pages per batch on the next start (v42) |
+| Upload files into a document | The page, then its document as far as the page influences it | The steps the new pages need (OCR, embedding …), then the document; the user chooses the place in the document; no batch, no grouping (Andreas, 2026-11-25, v42) |
 | Remove file | Its pages, then as "remove page" | Rebuild of affected documents |
 | Remove page | Its document from sections down | Same |
 | Reorder pages in a document | That document from sections down | Same |
@@ -67,25 +68,27 @@ One job type per unit of work and object. Modelled up to key info extraction; th
 
 | Job type | Per | Reads | Writes | Precondition | Follow-up candidates |
 |---|---|---|---|---|---|
-| ingest_file | File | File | Pages (image, index in file, position) | File uploaded | ocr_page per page; check_file_duplicate |
+| ingest_file | File | File | Pages (image, index in file, sequence) | File uploaded | ocr_page per page; check_file_duplicate |
 | check_file_duplicate | File | content_hash | Note if suspected | ingest_file done | – |
 | ocr_page | Page | Page image | Text, PAGE_FEATURES, classification; turned image if needed (turn, save, read again inside the job) | Page exists | embed_page (if process); decide_border for each border whose window holds the page; check_page_duplicate |
 | embed_page | Page | Text | PAGE.embedding | ocr_page done | – |
 | check_page_duplicate | Page | Text and embedding of pages | Note if suspected | embed_page done | – |
-| decide_border | Pair of neighbouring pages | PAGE_FEATURES of the window | border_before, border_score, border_rules | ocr_page done for every page in the window | assemble_document once a stretch has decided borders at both ends |
-| assemble_document | Stretch of pages | Pages, borders | Document; document_id, position on its pages | Both borders decided | find_sections; check_document_duplicate |
+| decide_border | Pair of neighbouring pages within a batch | PAGE_FEATURES of the window (discard pages skipped), separator between, folder change | border_before, border_score, border_rules | ocr_page done for every page in the window | assemble_document once a stretch has decided borders at both ends |
+| assemble_document | Stretch of pages | Pages, borders | Document; document_id, position on its pages; attached_to_document_id for keep documents | Both borders decided (a batch's last page counts as a border once all its pages are read) | find_sections; check_document_duplicate |
 | check_document_duplicate | Document | Texts of documents | Note if suspected | assemble_document done | – |
 | find_sections | Document | Document text, title-page features | Sections; DOCUMENT_FEATURES (authority or not, which sections were found) | assemble_document done | classify_document |
-| classify_document | Document | DOCUMENT_FEATURES, pages | document_type, short_title, stated_date, reference numbers (new, or linked to one without document) | find_sections done | extract_keyinfos per relevant section; check_reference_numbers |
+| classify_document | Document | DOCUMENT_FEATURES, title_* of the first page, pages | document_type, short_title, stated_date, reference numbers (new, or linked to one without document) | find_sections done | extract_keyinfos per relevant section; check_reference_numbers |
 | check_reference_numbers | Project | Reference numbers, dates | Notes (possible duplicates, date conflicts) | A reference number added or changed | – |
 | extract_keyinfos | Section | Section text | Key infos (verbatim, page and line) | classify_document done | embed_keyinfo per key info; later steps to be decided |
 | embed_keyinfo | Key info | Text | KEYINFO.embedding | extract_keyinfos done | – |
 
-Decided (Andreas, 2026-11-23), ocr_page: it records what is on the page; grouping (decide_border) and document classification interpret it and make no calls of their own on the page image. It fills text on every page, all PAGE_FEATURES including the per-page judgments that later steps take as input (indicates_*, is_text_document, is_construction_plan, is_irrelevant), document_type_hint and the page's classification; the title_* features are decided later and stay empty for now. A page is turned at most twice. PAGE_FEATURES has no project_id: it is one row per page and cannot exist without its page, so the project is reached through the page (Andreas, 2026-11-23); finished_at is dropped (not needed). PDFs are split into pages and read page by page like photos (decided; it also gives the information page by page). Deviation from the concept (V03 "bei Plänen, Anlagenfotos und irrelevanten Seiten kein Text"), to settle with Thomas: text is read on every page.
+Decided (Andreas, 2026-11-23), ocr_page: it records what is on the page; grouping (decide_border) and document classification interpret it and make no calls of their own on the page image. It fills text on every page, all PAGE_FEATURES including the per-page judgments that later steps take as input (indicates_*, is_text_document, is_construction_plan, is_irrelevant), document_type_hint and the page's classification; it also reads all title_* features on every page (Andreas, 2026-11-25, v42). A page is turned at most twice. PAGE_FEATURES has no project_id: it is one row per page and cannot exist without its page, so the project is reached through the page (Andreas, 2026-11-23); finished_at is dropped (not needed). PDFs are split into pages and read page by page like photos (decided; it also gives the information page by page). Deviation from the concept (V03 "bei Plänen, Anlagenfotos und irrelevanten Seiten kein Text"), to settle with Thomas: text is read on every page.
 
 Decided (Andreas, 2026-11-17): page turning stays inside ocr_page; duplicate checks are separate job types per level (file, page, document). Decided (Andreas, 2026-11-17): find_sections runs before the type is known: every document first gets a root section over the whole document, then all candidate section types are looked for beneath it; what was found is reported in DOCUMENT_FEATURES, which classify_document and later steps use.
 
-## Entity-relationship diagram (v41)
+Decided (Andreas, 2026-11-25, v42), grouping: grouping runs per batch, the files of one press of "Verarbeitung starten"; within a batch the api orders the files by relative path. The batch's first page and every change between process and keep pages (discard pages skipped) and between photos and PDF pages (v32) are fixed borders. discard pages belong to no document; a skipped discard page ("separator between") and a change of folder are weak inputs only. keep pages form documents of their own; assemble_document attaches each to the process document right before it (DOCUMENT.attached_to_document_id); a later batch never joins an older document. The border decision and the type decision sit behind a seam each, so a trained model can replace the rules later. Plan and reasons: `Grouping_and_Classification.md`.
+
+## Entity-relationship diagram (v42)
 
 ```mermaid
 erDiagram
@@ -99,6 +102,8 @@ FILE ||--|{ PAGE : yields
 PROJECT ||--o{ DOCUMENT : contains
 DOCUMENT o|--o{ PAGE : groups
 DOCUMENT ||--o| DOCUMENT_FEATURES : described_by
+DOCUMENT o|--o{ DOCUMENT : attaches
+DOCUMENT o|--o{ DOCUMENT : duplicate_of
 PAGE ||--o| PAGE_FEATURES : described_by
 PROJECT ||--o{ REFERENCE_NUMBER : knows
 DOCUMENT o|--o{ REFERENCE_NUMBER : carries
@@ -181,11 +186,13 @@ uuid uploaded_by_user_id FK "nullable"
 string file_type "image or pdf"
 string original_name "confidential"
 string path
+string relative_path "nullable, path within an uploaded folder; confidential"
 bigint size_bytes "declared on upload, checked against the stored file"
 string upload_state "pending or ready"
 string content_hash "nullable until ready"
 int page_count "nullable until ready"
-int upload_position "order within the upload"
+int upload_position "order within the batch, set by the api by relative path"
+int batch "nullable, set on Verarbeitung starten; empty when uploaded into a document"
 string duplicate_state "nullable, original or duplicate"
 datetime uploaded_at
 datetime upload_seen_at "last sign of life of a pending upload"
@@ -196,7 +203,8 @@ uuid project_id FK "every content row carries its project"
 uuid file_id FK
 uuid document_id FK "nullable"
 int file_page_index "0 for an image"
-int position "upload order, restarts at each document border"
+int position "place within its document; set by grouping, changed by moves"
+int sequence "place in the original Akt; set from the batch order, never changed by moves"
 string image_path "rendered or rotated version"
 string classification "process, keep, discard; set by ocr_page"
 string border_before "open, new_document, continuation"
@@ -224,7 +232,7 @@ bool has_stamp
 bool indicates_new_document
 bool indicates_finished_document
 bool indicates_continuation
-bool title_authority "nullable, title pages only"
+bool title_authority "nullable until read; all title_ features read on every page"
 bool title_reference_number "nullable"
 bool title_gegenstand_der_amtshandlung "nullable"
 bool title_ort_der_amtshandlung "nullable"
@@ -256,6 +264,8 @@ bool has_ergeht_an
 DOCUMENT {
 uuid id PK
 uuid project_id FK
+uuid attached_to_document_id FK "nullable, main document of an attachment"
+uuid duplicate_of_document_id FK "nullable, original of a duplicate"
 string document_type
 string short_title "nullable, generated; confidential"
 date stated_date "nullable, date written in the document"
@@ -413,7 +423,7 @@ Status: tidied 2026-11-17
 - Nothing open for the current scope (2026-11-17).
 - Keeping history: no soft delete, deleting is final after a confirmation; soft delete loses the cascade (v32).
 - DOCUMENT short title: generated, v32.
-- Mixed sources: a document may hold pages from several files, e.g. several photos; a photo series does not continue a PDF document (v32).
+- Mixed sources: a document may hold pages from several files, e.g. several photos; a photo series does not continue a PDF document (v32); a change between photos and PDF pages is a fixed border (v42).
 
 ### Deferred until the steps before them work (Andreas, 2026-11-17)
 
@@ -449,7 +459,7 @@ Status: tidied 2026-11-17
   - teilweise erfüllt: a passage states it, or a child requirement is teilweise erfüllt.
 - Status is calculated, not stored (Andreas, 2026-11-16): from the matched evidence (EVIDENCE.kind via the claims) and the child requirements. EVIDENCE.kind holds what a passage says. Newer information counts more; "newer" means the date stated in the document, not the upload date.
 - Parent status (Andreas, 2026-11-17): a parent with its own terminating status (erfüllt, hinfällig, ersetzt) keeps it and does not look at its children. Otherwise its status is strictly the worst child status; its own non-terminating evidence no longer counts. Reason: there can always be newer information not found yet. Order from worst to best: nicht erfüllt < mangelhaft < teilweise erfüllt < ersetzt < hinfällig < erfüllt. Example: children {nicht erfüllt, erfüllt} give nicht erfüllt.
-- Borders (Andreas, 2026-11-17): border_score is a confidence (0 to 1); border_rules keeps the rules that fired; no grey-zone value, a low confidence creates a note (v31).
+- Borders (Andreas, 2026-11-17): border_score is a confidence (0 to 1); border_rules keeps the rules that fired; no grey-zone value, a low confidence creates a note (v31); until NOTE is built (T-24) a low confidence is only marked in the documents view (v42).
 
 ### Solved in later versions
 
@@ -457,7 +467,7 @@ Status: tidied 2026-11-17
 - Document lacks Geschäftszahl and date; several per document: REFERENCE_NUMBER v9–v12, DOCUMENT.stated_date v6.
 - No author or context on KEYINFO: author_user_id v4; comments via NOTE and NOTE_TARGET, v13.
 - No event log: EVENT, v26.
-- Order of pages, sequence: position is enough, v17.
+- Order of pages: position within the document, v17; sequence as the place in the original Akt, v42.
 - Embedding per page: column on PAGE, v15.
 - Job target link or dependency table: both, JOB_TARGET v24 and JOB_DEPENDENCY v28.
 - Requirement side (v3 list): number v7; status calculated (v5); superseded_by replaced by kind ersetzt, v22; origin always a key info, v21; derived_from not needed. Override marker and reasoning: deferred (see above).
@@ -476,7 +486,7 @@ Missing fields and open decisions, table by table. Gone through on 2026-11-17; w
 | TIER | Decided (Andreas, 2026-11-23): a table, edited in the database, because the values will change. A project's tier limits the storage for uploads and the pages read (planned pages plus margin); pages beyond are kept, read after a move to a larger tier. Starting values Basis 150, Pro 500, Enterprise 1000 pages, +10 %, storage page limit × 10 MB × 2. Replaces the undescribed `PROJECT.tier` text. Later a tenant's booked plan may set it. | Concept D16 (plan names, assumption), D19 (pricing by page count, open) |
 | FILE (upload state) | Decided (Andreas, 2026-11-23): the browser uploads straight to object storage; a FILE row is pending from the signed URL on and ready once the stored file is checked; only ready files are processed. A pending upload without a sign of life (`upload_seen_at`) for a while counts as interrupted (Andreas, 2026-11-25). | Architecture section 7 |
 | DOCUMENT | Short title: short_title, v32. Document-level duplicate: duplicate_state, v18. Empty Bescheid as document without pages: replaced by a REFERENCE_NUMBER without document, v12 | Prototype, D04 |
-| PAGE | sequence: not needed, decided in v17. Embedding: on the page, decided in v15 | A02, V03 |
+| PAGE | sequence: position per document in v17; sequence reintroduced as the place in the original Akt, v42. Embedding: on the page, decided in v15 | A02, V03 |
 | DOCUMENT_SECTION | Decided (Andreas, 2026-11-17): section types depend on the document type. Bescheide and Verhandlungsschriften have a clear, predictable layout, so a fixed set of types is looked for (prototype: Gegenstand, Stellungnahme, Bescheid/Spruch, Auflagen, Verfahrenskosten, Rechtsmittelbelehrung, Rechtsgrundlage, …). Every document (authority or not) gets a root section over the whole document; further sections sit beneath it (Andreas, 2026-11-17). Consequence: every document has at least one section, so a key info from a document always has a source_section_id. The allowed types per document type live in the code configuration for now (Andreas, 2026-11-17). | D04, V06 |
 | REQUIREMENT | Auflage number (added in v7); superseded_by: no column. Decided (Andreas, 2026-11-17): when a Bescheid repeats requirements of a Verhandlungsschrift, the Bescheid passage becomes a key info whose evidence has one claim per repeated requirement. All evidence already matched to the Verhandlungsschrift requirement moves to the Bescheid requirement, the more relevant document. This evidence gets the new kind ersetzt, which ends the old requirement like hinfällig (Andreas, 2026-11-17). Decided (Andreas, 2026-11-17): ersetzt is preferably set on the parent requirement, which fits the domain better; the model also allows it on single child requirements. A Verhandlungsschrift requirement the Bescheid does not repeat stays an open requirement and is evaluated like any other. origin when there is no key info (always a key info, v21); derived_from: not needed. Decided (Andreas, 2026-11-17): a sub-requirement keeps its own key info (verbatim, e.g. a Brandschutzplan point) and its parent; which evidence led to it is traced through the document (its key info and the evidence's key info sit in the same document). subject category: kept, v22 | V10, D04, D42 |
 | EVIDENCE_CLAIM | Raw Geschäftszahl and date on the claim: not needed, decided in v7 | V10, D04 |
