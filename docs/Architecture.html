@@ -112,87 +112,104 @@ footer { font-size: 0.85rem; }
   </header>
 
   <section id="picture">
-    <div class="head"><h2>Current picture</h2><span class="tag current">v25</span><span class="muted">what is built in the proof of concept (T-4)</span></div>
+    <div class="head"><h2>Current picture</h2><span class="tag current">v36</span><span class="muted">what is built in the proof of concept (T-4) and runs on the dev core host</span></div>
     <figure class="pic">
-      <svg viewBox="0 0 1170 470" role="img" aria-label="The frontend talks to the api; the api stores events and files in PostgreSQL and the file store; PostgreSQL wakes the orchestrator process, whose engines push jobs to Redis lane queues; workers take jobs with a lease, use the file store and the model provider, and post results to a result stream per project, which the orchestrator reads back for the engine to write." font-family="var(--font-body)" font-size="12" fill="currentColor">
+      <svg viewBox="0 0 1270 500" role="img" aria-label="The browser reaches everything through Caddy: pages from the frontend, /api from the api, and signed URLs straight to Garage, where originals are uploaded and page images shown. The api signs and confirms uploads and stores events in PostgreSQL; PostgreSQL wakes the orchestrator process, whose engines push jobs to Redis lane queues, one per provider; workers take a provider slot and the job with a lease, read and write files in Garage, hold a slot of the model for each model call, and post results to a result stream per project, which the orchestrator reads back for the engine to write." font-family="var(--font-body)" font-size="12" fill="currentColor">
         <defs>
           <marker id="pa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker>
         </defs>
         <g fill="none" stroke="currentColor" stroke-width="1.3">
-          <rect x="20" y="40" width="150" height="50" rx="6"/>
-          <rect x="20" y="200" width="150" height="50" rx="6"/>
-          <rect x="250" y="195" width="170" height="70" rx="6" style="stroke:var(--accent)" stroke-width="2"/>
-          <rect x="250" y="400" width="170" height="50" rx="6"/>
-          <rect x="500" y="20" width="220" height="310" rx="8" stroke-dasharray="5 4"/>
-          <rect x="530" y="80" width="160" height="44" rx="6"/>
-          <rect x="530" y="140" width="160" height="44" rx="6"/>
-          <rect x="530" y="240" width="160" height="40" rx="6"/>
-          <rect x="800" y="60" width="170" height="60" rx="6"/>
-          <rect x="800" y="250" width="170" height="60" rx="6"/>
-          <rect x="1010" y="150" width="140" height="60" rx="6"/>
-          <rect x="1010" y="400" width="140" height="50" rx="6"/>
+          <rect x="10" y="195" width="100" height="50" rx="6"/>
+          <rect x="140" y="195" width="110" height="50" rx="6"/>
+          <rect x="290" y="40" width="120" height="50" rx="6"/>
+          <rect x="290" y="195" width="120" height="50" rx="6"/>
+          <rect x="290" y="400" width="120" height="60" rx="6"/>
+          <rect x="460" y="185" width="150" height="70" rx="6" style="stroke:var(--accent)" stroke-width="2"/>
+          <rect x="660" y="20" width="190" height="300" rx="8" stroke-dasharray="5 4"/>
+          <rect x="675" y="80" width="160" height="44" rx="6"/>
+          <rect x="675" y="140" width="160" height="44" rx="6"/>
+          <rect x="675" y="240" width="160" height="40" rx="6"/>
+          <rect x="890" y="50" width="170" height="60" rx="6"/>
+          <rect x="890" y="250" width="170" height="60" rx="6"/>
+          <rect x="1070" y="150" width="130" height="60" rx="6"/>
+          <rect x="1070" y="400" width="130" height="60" rx="6"/>
         </g>
         <g text-anchor="middle" font-size="13" font-weight="600">
-          <text x="95" y="70">frontend</text>
-          <text x="95" y="230">api</text>
-          <text x="335" y="224" style="fill:var(--accent)">PostgreSQL</text>
-          <text x="335" y="430">file store</text>
-          <text x="610" y="42">orchestrator process</text>
-          <text x="610" y="107">engine · project A</text>
-          <text x="610" y="167">engine · project B</text>
-          <text x="610" y="265">reaper</text>
-          <text x="885" y="86">Redis lane queues</text>
-          <text x="885" y="276">Redis result stream</text>
-          <text x="1080" y="178">workers</text>
-          <text x="1080" y="430">model provider</text>
+          <text x="60" y="225">browser</text>
+          <text x="195" y="219">Caddy</text>
+          <text x="350" y="70">frontend</text>
+          <text x="350" y="225">api</text>
+          <text x="350" y="426">Garage</text>
+          <text x="535" y="214" style="fill:var(--accent)">PostgreSQL</text>
+          <text x="755" y="42">orchestrator process</text>
+          <text x="755" y="107">engine · project A</text>
+          <text x="755" y="167">engine · project B</text>
+          <text x="755" y="265">reaper</text>
+          <text x="975" y="76">Redis lane queues</text>
+          <text x="975" y="276">Redis result stream</text>
+          <text x="1135" y="178">workers</text>
+          <text x="1135" y="435">model provider</text>
         </g>
         <g text-anchor="middle" fill-opacity="0.7">
-          <text x="335" y="244">events · jobs · content</text>
-          <text x="610" y="60">any number · advisory lock per project</text>
-          <text x="610" y="210">one engine per active project</text>
-          <text x="885" y="106">code · one lane per model</text>
-          <text x="885" y="296">one per project</text>
-          <text x="1080" y="198">any number</text>
+          <text x="195" y="236">only entry point</text>
+          <text x="350" y="444">object storage</text>
+          <text x="535" y="234">events · jobs · content</text>
+          <text x="755" y="60">any number</text>
+          <text x="755" y="214">one engine per active project</text>
+          <text x="975" y="96">code · one per provider</text>
+          <text x="975" y="296">one per project</text>
+          <text x="1135" y="198">any number</text>
         </g>
         <g fill="none" stroke="currentColor" stroke-width="1.3" marker-end="url(#pa)">
-          <line x1="110" y1="90" x2="110" y2="198"/>
-          <line x1="80" y1="200" x2="80" y2="92" stroke-dasharray="4 3"/>
-          <line x1="170" y1="225" x2="248" y2="225"/>
-          <polyline points="95,250 95,425 248,425"/>
-          <polyline points="530,102 335,102 335,193"/>
-          <line x1="420" y1="215" x2="498" y2="215" stroke-dasharray="4 3"/>
-          <line x1="500" y1="245" x2="422" y2="245"/>
-          <line x1="690" y1="105" x2="798" y2="105"/>
-          <polyline points="970,80 1080,80 1080,148"/>
-          <polyline points="1040,150 1040,112 972,112" stroke-dasharray="4 3"/>
-          <polyline points="1010,195 990,195 990,280 972,280"/>
-          <line x1="690" y1="262" x2="798" y2="262"/>
-          <line x1="800" y1="295" x2="722" y2="295"/>
-          <polyline points="1050,210 1050,375 335,375 335,398" marker-start="url(#pa)"/>
-          <line x1="1110" y1="210" x2="1110" y2="398"/>
+          <line x1="110" y1="220" x2="138" y2="220"/>
+          <polyline points="180,195 180,65 288,65"/>
+          <line x1="250" y1="220" x2="288" y2="220"/>
+          <polyline points="180,245 180,430 288,430"/>
+          <line x1="350" y1="245" x2="350" y2="398"/>
+          <line x1="410" y1="220" x2="458" y2="220"/>
+          <polyline points="675,102 535,102 535,183"/>
+          <line x1="610" y1="200" x2="658" y2="200" stroke-dasharray="4 3"/>
+          <line x1="660" y1="240" x2="612" y2="240"/>
+          <line x1="835" y1="90" x2="888" y2="90"/>
+          <polyline points="1060,70 1135,70 1135,148"/>
+          <polyline points="1100,150 1100,100 1062,100" stroke-dasharray="4 3"/>
+          <polyline points="1070,195 1066,195 1066,280 1062,280"/>
+          <line x1="835" y1="262" x2="888" y2="262"/>
+          <line x1="890" y1="295" x2="852" y2="295"/>
+          <polyline points="1095,210 1095,375 380,375 380,398" marker-start="url(#pa)"/>
+          <line x1="1170" y1="210" x2="1170" y2="398"/>
         </g>
         <g>
-          <text x="118" y="140">REST: upload,</text>
-          <text x="118" y="155">start run</text>
-          <text x="72" y="150" text-anchor="end">SSE</text>
-          <text x="209" y="217" text-anchor="middle">event, files</text>
-          <text x="103" y="340">originals</text>
-          <text x="420" y="80" text-anchor="middle">one transaction:</text>
-          <text x="420" y="94" text-anchor="middle">event or result + new jobs</text>
-          <text x="460" y="208" text-anchor="middle">NOTIFY</text>
-          <text x="460" y="260" text-anchor="middle">lock</text>
-          <text x="760" y="97" text-anchor="middle">push jobs</text>
-          <text x="985" y="72">take with lease</text>
-          <text x="978" y="130">heartbeat</text>
-          <text x="996" y="240">result</text>
-          <text x="760" y="255" text-anchor="middle">lease expired</text>
-          <text x="760" y="320" text-anchor="middle">one XREAD</text>
-          <text x="690" y="367" text-anchor="middle">originals, page images (own name per attempt)</text>
-          <text x="1116" y="300">model</text>
-          <text x="1116" y="315">call</text>
+          <text x="124" y="188" text-anchor="middle">HTTPS</text>
+          <text x="186" y="130">pages</text>
+          <text x="269" y="212" text-anchor="middle">/api</text>
+          <text x="186" y="315">signed URLs:</text>
+          <text x="186" y="330">upload originals,</text>
+          <text x="186" y="345">show page images</text>
+          <text x="356" y="300">confirm upload,</text>
+          <text x="356" y="315">count pages</text>
+          <text x="434" y="212" text-anchor="middle">event</text>
+          <text x="560" y="80" text-anchor="middle">one transaction:</text>
+          <text x="560" y="94" text-anchor="middle">event or result + new jobs</text>
+          <text x="634" y="193" text-anchor="middle">NOTIFY</text>
+          <text x="636" y="256" text-anchor="middle">lock per</text>
+          <text x="636" y="270" text-anchor="middle">project</text>
+          <text x="862" y="82" text-anchor="middle">push</text>
+          <text x="1068" y="62">take with lease</text>
+          <text x="1141" y="120">provider</text>
+          <text x="1141" y="135">slot first</text>
+          <text x="1094" y="128" text-anchor="end">heartbeat</text>
+          <text x="1060" y="238" text-anchor="end">result</text>
+          <text x="862" y="254" text-anchor="middle">expired</text>
+          <text x="871" y="336" text-anchor="middle">one XREAD</text>
+          <text x="740" y="367" text-anchor="middle">originals, page images (own name per attempt)</text>
+          <text x="1176" y="290">model call,</text>
+          <text x="1176" y="305">a slot of</text>
+          <text x="1176" y="320">that model</text>
+          <text x="1176" y="335">each call</text>
         </g>
       </svg>
-      <figcaption>Solid arrows carry work, dashed arrows only wake or keep alive. PostgreSQL (highlighted) is the source of truth; Redis holds only messages in transit. Workers never touch the database; only an engine writes its project's processing state, each trigger with its effects and new jobs in one transaction.</figcaption>
+      <figcaption>Solid arrows carry work, dashed arrows only wake or keep alive. Caddy is the only entry point; the browser uploads originals and loads page images straight from Garage through short-lived signed URLs, the api only signs and confirms them. PostgreSQL (highlighted) is the source of truth; Redis holds only messages in transit. A worker takes a slot of the provider before a job and a slot of the model for each model call, fallbacks included; a full model delays the job. Workers never touch the database; only an engine writes its project's processing state, each trigger with its effects and new jobs in one transaction.</figcaption>
     </figure>
     <figure class="pic">
       <svg viewBox="0 0 900 180" style="max-width:900px" role="img" aria-label="A job is created waiting, becomes queued when it may run, and ends done or, after a second failure, failed; a lost lease or a first failure sends it back to waiting; user input brings a failed job back." font-family="var(--font-body)" font-size="12" fill="currentColor">
@@ -259,6 +276,7 @@ footer { font-size: 0.85rem; }
       <tbody>
         <tr><td><span class="kind add">decided</span></td><td>Every model call holds a slot of its model (<code>max_parallel</code> per model, else <code>default_max_parallel</code>); a fallback's call holds a slot of the fallback model; the provider semaphore before the job stays</td><td>Andreas, 2026-11-25: the maximum per model must also count the calls that reach a model as a fallback</td></tr>
         <tr><td><span class="kind add">decided</span></td><td>A model without a free slot is not called; the job waits and is tried again later, like a rate limit</td><td>Andreas, 2026-11-25: no idle waiting while holding slots; same handling as a rate limit</td></tr>
+        <tr><td><span class="kind chg">changed</span></td><td>Current picture and diagrams brought up to date: Caddy as the entry point, Garage with uploads straight from the browser, lanes per provider, provider and model slots</td><td>Andreas, 2026-11-25: the picture still showed v25 (lanes per model, uploads through the api, no Caddy)</td></tr>
         <tr><td><span class="kind add">new</span></td><td>A model slot lost during the call (Redis unreachable longer than the lease) is taken back once; if all are in use by then, the call finishes over the limit and this is logged. Redis failing never fails the call: no slot can be taken means the job waits; a slot that cannot be given back frees itself by its lease</td><td>Code review, 2026-11-25: the lost lease went unnoticed and another worker could take the slot; cancelling the call would throw away a paid answer</td></tr>
         <tr><td><span class="kind chg">changed</span></td><td>dev: 8 slots for the provider <code>openai</code> and 8 for <code>gpt-5-mini</code> (default 8)</td><td>Andreas, 2026-11-25: more parallel calls on the dev core host</td></tr>
       </tbody>

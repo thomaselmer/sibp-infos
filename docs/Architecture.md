@@ -250,15 +250,17 @@ Decided so far (data model, section "Architecture, not ER model", and versions v
 
 ### How the parts are linked
 
-Solid arrows carry work, dashed arrows only wake or report. PostgreSQL is the source of truth; Redis holds only
-messages in transit.
+Solid arrows carry work, dashed arrows only wake or report. Caddy is the only entry point; the browser reaches
+Garage only through short-lived signed URLs. PostgreSQL is the source of truth; Redis holds only messages in transit.
 
 ```mermaid
 flowchart LR
-  FE["frontend (Next.js)"] -->|"REST: upload, start run"| API[api]
-  API -.->|"SSE: status per stage"| FE
+  BR[browser] -->|HTTPS| CA["Caddy<br/>only entry point"]
+  CA -->|pages| FE["frontend (Next.js)"]
+  CA -->|"/api: REST, SSE"| API[api]
+  CA -->|"signed URLs: upload originals,<br/>show page images"| GA[("Garage<br/>object storage")]
+  API -->|"confirm upload, count pages"| GA
   API -->|"FILE rows, user event"| DB[("PostgreSQL<br/>events, jobs, content")]
-  API -->|"originals"| FS[("file store")]
   DB -.->|"NOTIFY: new user event"| ORC
   subgraph ORC["orchestrator process (any number)"]
     direction TB
@@ -268,10 +270,10 @@ flowchart LR
   ORC -->|"advisory lock per project"| DB
   EA -->|"one transaction: consume event or<br/>write result, create follow-up jobs"| DB
   EA -->|"push runnable jobs<br/>(priority, project cap)"| LQ[["Redis lane queues<br/>code · one per provider"]]
-  LQ -->|"take with lease"| W["workers (any number)"]
-  W -.->|"heartbeat extends lease"| LQ
-  W <-->|"originals, page images"| FS
-  W -->|"model call (semaphore per provider)"| MP["model provider"]
+  LQ -->|"take with lease<br/>(provider slot first)"| W["workers (any number)"]
+  W -.->|"heartbeat extends lease and slots"| LQ
+  W <-->|"originals, page images"| GA
+  W -->|"model call (a slot of that model per call,<br/>fallbacks included)"| MP["model provider"]
   W -->|"typed result, tokens"| RS[["Redis result stream<br/>one per project"]]
   ORC -->|"reaper: expired lease → LEASE_EXPIRED"| RS
   RS -->|"one XREAD for all its engines"| ORC
@@ -287,17 +289,18 @@ sequenceDiagram
   participant ENG as engine (project)
   participant R as Redis
   participant W as worker
-  participant FS as file store
+  participant FS as Garage (object storage)
   participant M as model provider
   API->>DB: store user event, NOTIFY (one transaction)
   DB-->>ORC: notification with the project id
   ORC->>DB: claim project (advisory lock), start engine if none holds it
   ENG->>DB: consume event, create jobs and dependencies (one transaction)
   ENG->>R: push runnable jobs to their lanes (ids, keys, texts)
-  W->>R: take job with lease (model lanes: take a semaphore slot first)
+  W->>R: take job with lease (provider lanes: take a slot of the provider first)
   W-->>R: heartbeats extend the lease while the task runs
   W->>FS: read original or page image
-  W->>M: model call(s)
+  W->>R: take a slot of the model (none free: the job waits)
+  W->>M: model call(s), each holding a slot of its model, fallbacks included
   W->>FS: save new files under a name of this attempt
   W->>R: acknowledge, post result to the project's result stream
   ORC->>R: read the result streams of all its engines
