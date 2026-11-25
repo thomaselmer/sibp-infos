@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 35 · 2026-11-23 · Task T-3
+Status: **draft** · Version 36 · 2026-11-25 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -352,6 +352,11 @@ stateDiagram-v2
   takes a slot of that provider's semaphore (size in configuration) and only then takes the first job of the lane. No free slot:
   it skips the lane. No job: it gives the slot back.
   - Slots are leases with an expiry, extended by the worker's heartbeat; a dead worker's slot frees itself.
+- **Limit per model, taken per call** (Andreas, 2026-11-25): besides the provider slot, every model call holds a slot
+  of the model it calls (`max_parallel` of the model, else `default_max_parallel`), a fallback's call a slot of the
+  fallback model, so a model's limit counts all its calls. A model without a free slot is not called: the job waits
+  and is tried again later, like a rate limit. The slots are leases on the same Redis semaphore (own keys per model),
+  kept by a heartbeat for the length of the call.
 - **Taking a job is a lease too.** Taking moves the job atomically from the queue to the lane's in-flight set with an
   expiry; the worker's heartbeat extends it; acknowledging the result removes it. An expired lease (dead worker) puts
   the job back as queued (restart rule). Sorted sets do not bring this, so it is built into the queue code.
@@ -379,14 +384,14 @@ stateDiagram-v2
 - **Start:** all job types use the OpenAI API with one API key (environment variable, never in the repository).
 - **Configuration** (Andreas, 2026-11-23): in `config/<environment>.yaml`. `providers` names each provider, its kind
   (`openai`; `openai_compatible` for a local server, which is planned) and the secret holding its key; `models`
-  names each model's provider and its `fallbacks`; `job_models` names the model of each job type (`ocr_page`:
+  names each model's provider, its `fallbacks` and optionally `max_parallel`; `job_models` names the model of each job type (`ocr_page`:
   `gpt-5-mini`). Choosing a model chooses its provider and lane.
 - **Fallback when a model is unavailable** (Andreas, 2026-11-23): each model has an ordered list of fallback models
   (empty for now). On no connection, timeout, server error (5xx, including 503 overload) or model not found, the same
   call goes to the next model in the list; when all fail, the job waits and is tried again later, not counted as
   failed. The result and its token usage name the model that produced it. A rate limit (429) is not a fallback case:
-  the job waits and the same model is tried again. A fallback call to another provider takes no slot in that
-  provider's lane (accepted for now).
+  the job waits and the same model is tried again. A fallback call holds a slot of the fallback model (section 5),
+  but no slot in its provider's lane when that is another provider (accepted for now).
 - **Open:** fallback when a model's result is too weak (stage 2); further mechanisms for rate limits.
 - **Real data** (Andreas, 2026-11-23): quality runs on the golden dataset may send real pages to the OpenAI API from
   the local machine; prod stays blocked until the terms are checked (below).
