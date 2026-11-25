@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 38 · 2026-11-25 · Task T-3
+Status: **draft** · Version 39 · 2026-11-25 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -393,7 +393,7 @@ stateDiagram-v2
 - **Configuration** (Andreas, 2026-11-23): in `config/<environment>.yaml`. `providers` names each provider, its kind
   (`openai`; `openai_compatible` for a local server, which is planned) and the secret holding its key; `models`
   names each model's provider, its `fallbacks` and optionally `max_parallel`; `job_models` names the model of each job type (`ocr_page`:
-  `gpt-5-mini`). Choosing a model chooses its provider and lane.
+  `gpt-5-mini`; `embed_page`, `embed_keyinfo`: `text-embedding-3-small`, 1536 dimensions, Andreas, 2026-11-25). Choosing a model chooses its provider and lane.
 - **Fallback when a model is unavailable** (Andreas, 2026-11-23): each model has an ordered list of fallback models
   (empty for now). On no connection, timeout, server error (5xx, including 503 overload) or model not found, the same
   call goes to the next model in the list; when all fail, the job waits and is tried again later, not counted as
@@ -427,8 +427,16 @@ stateDiagram-v2
 
 Consequences and guidelines:
 - **Embeddings:** the vector size is fixed per column; changing the embedding model means re-embedding every page and
-  key info of a project. Store the embedding model name with the vectors. **Suggestion**, to confirm in the data
-  model.
+  key info of a project. The embedding model name is stored with the vectors (data model `embedding_model`).
+- **Decision seams** (Andreas, 2026-11-25, T-18): the border decision (`decide_border`) and the type decision
+  (`classify_document`) each sit behind one function with a typed input (the features of the window or of the
+  document) and a typed output (decision, confidence 0–1, optional explanation). The rule scoring is the first
+  implementation; a trained model (e.g. a neural network) can replace it later, chosen in configuration. The stored
+  `PAGE_FEATURES` and `DOCUMENT_FEATURES`, the golden dataset and user corrections (EVENT) are its training data.
+  `ocr_page` therefore reads all features on every page, the `title_*` features included.
+- **Border confidence** (Andreas, 2026-11-25): the distance of the rule points from the threshold, mapped linearly
+  (0.5 at the threshold, 1.0 at the cap); threshold and cap in `config/<environment>.yaml`. Plan:
+  `Grouping_and_Classification.md`.
 - **LangGraph state:** nodes return only the fields they change. Returning the whole state with an adding reducer
   counts token usage several times (seen in the prototype).
 - Quality and cost per job type are compared on test data before a model is switched (A13).
@@ -461,10 +469,10 @@ MVP starts with engineering offices (D17); HEIC is not listed in V01 and would b
   (done, queued, waiting) and Redis (running).
 - **Uploads straight to object storage** (A9c; Andreas, 2026-11-18, left the choice to the recommendation; built
   2026-11-23, T-8):
-  1. the frontend asks the api for upload slots (file names, sizes, types); the api checks access, allowed formats,
-     the size per file and the storage of the project's tier, adds a pending FILE per accepted file (in the order
-     chosen, which is the upload order) and returns a short-lived signed upload URL per file. Files are taken in order
-     while the storage lasts; the rest is rejected, so the order is never broken;
+  1. the frontend asks the api for upload slots (file names, relative paths, sizes, types); the api checks access,
+     allowed formats, the size per file and the storage of the project's tier, adds a pending FILE per accepted file
+     and returns a short-lived signed upload URL per file. Files are taken in the order of the request while the
+     storage lasts; the rest is rejected, so no gap appears;
   2. the browser uploads straight to Garage under `projects/<project>/files/…`, a few files at once, with progress.
      The signed URL accepts exactly the declared size and type (Garage refuses anything else, checked 2026-11-23);
      the bucket's CORS rule admits only the frontend's origin (set by the api on start);
@@ -485,8 +493,16 @@ MVP starts with engineering offices (D17); HEIC is not listed in V01 and would b
     at least two intervals) is interrupted: shown as such, no longer counted against the storage, and removed with
     whatever reached Garage on the next upload to the project. This holds across tabs and devices; the api cannot
     see an upload going straight to Garage. Replaces the hour after the start, which kept reloaded uploads showing
-    as running and blocking the storage. **Open:** the order of continued files (today they move to
-    the end; the order is in the file names for now) and the cleanup of other unreferenced files.
+    as running and blocking the storage. The order of continued files no longer matters: the order is set per batch
+    (below). **Open:** the cleanup of other unreferenced files.
+  - **Folders and order** (Andreas, 2026-11-25, T-18, built in T-19): folders can be dropped or picked; each file
+    keeps its path within the folder (`FILE.relative_path`). On "Verarbeitung starten" the api gives every ready file
+    without a batch the next batch number (`FILE.batch`) and orders the batch naturally by relative path (folder by
+    folder, then file name, numbers compared as numbers; upload time breaks ties) into `upload_position`. Grouping
+    runs within a batch; a later batch never joins an older document. Each page gets its place in the original Akt
+    (`PAGE.sequence`), which moving pages never changes.
+  - **Upload into a document** (Andreas, 2026-11-25): started from a document; the user chooses the place in the
+    document; these files get no batch and skip grouping, their pages run the steps they need.
   - Page images are shown the same way: the api redirects to a short-lived signed URL.
   - The api is never blocked by large files.
   - Exception to the wrapper rule (section 9): the browser writes the original upload around the file store wrapper.
@@ -510,14 +526,18 @@ MVP starts with engineering offices (D17); HEIC is not listed in V01 and would b
     read pages show it anyway.
   - Upload: allowed up to the storage; everything uploaded is kept.
   - `ingest_file` splits every file, since it costs no model calls and the page count is shown.
-  - `ocr_page` reads only the first *planned pages + margin* pages in upload order (e.g. 550 for 500). A page's
+  - `ocr_page` reads only the first *planned pages + margin* pages in batch order (e.g. 550 for 500). A page's
     place counts the pages of all earlier files, ingested or not, so it does not change when files are ingested
     out of order. Pages beyond stay stored, unread.
   - From grouping on, only pages up to the last document border within the limit go further; a document that
     crosses the limit does not go on at all, its read pages are kept (no half document in the pipeline). Built with
-    `decide_border`; the only borders known before are file starts.
-  - A larger tier lets the next "Verarbeitung starten" read and process the rest.
+    `decide_border`; the borders known before are batch starts.
+  - A larger tier lets the next "Verarbeitung starten" read and process the rest; a batch cut by the limit continues
+    from the cut.
   - The pricing model itself (projects priced by maximum page count, D19; plan names, D16) is Thomas's to settle.
+- **"Dokumente" view** (Andreas, 2026-11-25, T-18; for now in place of "Dokumente nach Ablage"): documents in Akt
+  order (`PAGE.sequence`) with page previews and their `keep` attachments nested; unsure borders (low confidence)
+  marked; type, short title and date once classification is built (T-24). "Upload into a document" starts there.
 - **For now, in the proof of concept** (2026-11-18, T-4): the status stream checks the database once a second instead of
   waiting for a report from the orchestrator; the TypeScript types are written by hand; no login, every request
   acts as a development user. The frontend has the two pages above, with the pages of a project shown in place of
@@ -650,7 +670,7 @@ through wrappers that will handle encryption later; today they pass data through
 
 | Stage | In the golden dataset | Measured |
 |---|---|---|
-| pages → documents (borders, V04) | complete | borders right, documents matched exactly, too many joined or split |
+| pages → documents (borders, V04) | complete | borders right, documents matched exactly, too many joined or split; measured with and without the folder input, since the golden subfolders are the document labels (Andreas, 2026-11-25) |
 | document type (V07) | complete | right per type, confusions (e.g. Bescheid taken for Verhandlungsschrift) |
 | key infos (V08, V09) | representative | recall on the marked key infos; key infos found beyond them go to a list for review, not counted as wrong |
 
