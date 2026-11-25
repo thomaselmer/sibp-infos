@@ -116,7 +116,7 @@ or a similar trained model. Both take many input features and produce one output
 | `link_attachments` (later) | `classify_document` | – |
 
 Duplicate checks (`check_file_duplicate`, `check_page_duplicate`, `check_document_duplicate`) need the `NOTE` table;
-see Q10.
+built in slice 6, the duplicate checks follow in slice 7.
 
 ## Order (slices)
 Each slice is built test-first, ends with a quality run on the golden dataset and can be reset with the stage reset.
@@ -130,12 +130,13 @@ Each slice is built test-first, ends with a quality run on the golden dataset an
    process/keep changes; `discard` skipped; new inputs separator and folder change; attachment rule dropped). Writes
    `border_before`, `border_score`, `border_rules`. Measured: borders right, with and without the folder input.
 4. **`assemble_document`:** `DOCUMENT` rows, `PAGE.document_id`, `PAGE.position`, simple attachment links. Measured:
-   documents matched exactly, too many joined or split. Frontend shows documents (Q11).
+   documents matched exactly, too many joined or split. The "Dokumente" view shows them.
 5. **`find_sections`:** `DOCUMENT_SECTION` (root + found sections), `DOCUMENT_FEATURES`. Prototype prompt with
    `[L<n>]` line markers kept as it is.
 6. **`classify_document` + `check_reference_numbers`:** `document_type`, `short_title`, `stated_date`,
-   `REFERENCE_NUMBER`. Measured: type right, confusions.
-7. **`link_attachments`** (later, own plan).
+   `REFERENCE_NUMBER`, `NOTE`, `NOTE_TARGET`. Measured: type right, confusions.
+7. **Duplicate checks** (T-14, T-15, `check_document_duplicate`), reusing `NOTE`.
+8. **`link_attachments`** (later, own plan).
 
 ## Changes to carry into the model documents
 Collected here, written as one new version each once this plan is agreed.
@@ -145,21 +146,30 @@ Collected here, written as one new version each once this plan is agreed.
 - **Architecture:** section 7 says "the only borders known before are file starts" — replace by batch starts and the
   order within a batch; upload of folders; the decision seams for a trained model (section 6).
 
-## Open questions
-- **Q4, Q5, Q7:** settled above (pages in grouping; file starts replaced by batch starts; the open end is the end of
-  a batch).
-- **Q6 `border_score`:** 0–1 for rules and a trained model (settled). Open: how the rule points map to 0–1.
-  Suggestion: distance from the threshold, capped, mapped linearly.
-- **Q8 Long documents in `find_sections`.** Suggestion: one call for now, measured on the golden dataset; split only
-  when it fails.
-- **Q9 How `classify_document` decides.** Suggestion, as in the prototype: authority documents by a rule over
-  `DOCUMENT_FEATURES` (Verhandlungsschrift / Bescheid / both / other authority document); other documents by the
-  text model choosing from the kinds in `document_type_hint`. `short_title` and `stated_date` in the same call;
-  reference numbers from the pages' `reference_number_raw`, normalized like the prototype (letters and digits,
-  upper case).
-- **Q10 Duplicate checks and `NOTE`.** In this plan or after? `NOTE` is also needed for data conflicts raised by
-  `check_reference_numbers`.
-- **Q11 Frontend.** Which view shows documents after slice 4 (documents with their pages and attachments, type after
-  slice 6), and the upload into a document?
-- **Q12 Done.** Suggestion: done when slices 1–6 run on the golden dataset and the quality run reports borders,
-  documents and types; targets set after the first run.
+### Remaining questions (Andreas, 2026-11-25)
+- **`border_score`:** distance of the rule points from the threshold, mapped linearly: 0.5 at the threshold, 1.0 at
+  a distance of 10 points or more either way. Threshold and cap in `config/<env>.yaml`. The same 0–1 meaning for a
+  trained model.
+- **Long documents in `find_sections`:** one call per document with the whole line-numbered text (`keep` documents
+  excluded) and the prototype prompt; split only when the golden run shows missed or misplaced sections.
+- **How `classify_document` decides,** behind the decision seam: `keep` documents take their type from their pages'
+  `document_type_hint` (plan, plant photo), no model call; authority documents by a rule combining the sections
+  found (`DOCUMENT_FEATURES`, prototype `evaluate_gov_doc_type`) and the first page's `title_*` features (prototype
+  `classify_document_type`): Verhandlungsschrift, Bescheid, both, or other authority document; other documents by
+  the text model choosing a kind from `document_type_hint`, with `short_title` and `stated_date` in the same call.
+  Reference numbers from the pages' `reference_number_raw`, normalized like the prototype (letters and digits, upper
+  case).
+- **`NOTE`:** built in slice 6 with `check_reference_numbers`, its first user. The duplicate checks (T-14, T-15,
+  `check_document_duplicate`) follow as their own slice after it and reuse `NOTE`, `NOTE_TARGET` and
+  `duplicate_of_document_id`.
+- **Frontend:** a "Dokumente" view grows with the slices: from slice 4 documents in Akt order (`sequence`) with page
+  previews (T-13) and their `keep` attachments nested, low-`border_score` borders marked; slice 6 adds type, short
+  title and date. "Upload into document" starts from a document there.
+
+- **Done and tasks:** T-18 (planning) is done when this plan has no open questions, data model v42 and the
+  architecture update are written and approved, and every slice is an open task (slice 1 T-20, slice 2 T-19,
+  slice 3 T-21, slice 4 T-22, slice 5 T-23, slice 6 T-24, slice 7 T-25; T-14, T-15, T-17 absorbed). A slice task is
+  done when its slice runs on the golden dataset and the quality run reports its measures; targets are set after the
+  first run.
+
+No open questions remain.
