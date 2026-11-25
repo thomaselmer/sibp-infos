@@ -72,6 +72,7 @@ footer { font-size: 0.85rem; }
     <nav aria-label="Sections">
       <a href="#picture">Current picture</a>
       <a href="#open">Open decisions</a>
+      <a href="#v40">v40</a>
       <a href="#v39">v39</a>
       <a href="#v38">v38</a>
       <a href="#v37">v37</a>
@@ -273,8 +274,23 @@ footer { font-size: 0.85rem; }
     </table></div>
   </section>
 
+  <section id="v40">
+    <div class="head"><h2>v40</h2><span class="tag current">current</span><span class="muted">2026-11-25 · page previews and browser cache</span></div>
+    <div class="tablebox"><table>
+      <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td><span class="kind add">decided</span></td><td>Page previews: a 320&nbsp;px WebP next to every page image, made by <code>ingest_file</code> from the image it renders (no second decode) and by <code>ocr_page</code> for a turned page; tiles show the preview, a click opens the full image; no fallback to the full image</td><td>Andreas, 2026-11-25 (T-13): the page grid loaded full images (up to 50 megapixels) into 130&nbsp;px tiles; locally 534.7&nbsp;MB of images against 0.79&nbsp;MB of previews</td></tr>
+        <tr><td><span class="kind add">new</span></td><td>One-off command <code>python -m app.pipeline.previews</code> for pages stored before previews; makes only what is missing, also the rendered image of a turned page</td><td>Andreas, 2026-11-25: older pages get a real preview, never the full image (A0 plans); a stage reset brings the rendered image back</td></tr>
+        <tr><td><span class="kind add">decided</span></td><td>Browser cache: the redirect and the signed URL carry <code>Cache-Control: private, max-age=N</code> (<code>storage.image_cache_seconds</code>, below the signed URL's lifetime); the links carry the page's image version, so a turned page gets new links at once</td><td>Andreas, 2026-11-25: every refresh loaded every image again; a fixed cache time alone would show a turned page sideways</td></tr>
+        <tr><td><span class="kind chg">changed</span></td><td>Stored files carry their content type by extension (one list in the file store)</td><td>Page images were served without one</td></tr>
+        <tr><td><span class="kind chg">changed</span></td><td>Paging and groups of the upload and processing pages moved to T-26, after the upload redesign (T-19) and the document view</td><td>Andreas, 2026-11-25: batches, paths and <code>PAGE.sequence</code> change what those pages group and order by</td></tr>
+      </tbody>
+    </table></div>
+    <p class="muted">Plan and details: <code>Previews_and_Paging.md</code>; submodule <code>572030b</code>, <code>2855bcf</code>.</p>
+  </section>
+
   <section id="v39">
-    <div class="head"><h2>v39</h2><span class="tag current">current</span><span class="muted">2026-11-25 · decision seams, embedding model, folder upload and batches</span></div>
+    <div class="head"><h2>v39</h2><span class="tag">earlier</span><span class="muted">2026-11-25 · decision seams, embedding model, folder upload and batches</span></div>
     <div class="tablebox"><table>
       <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
       <tbody>

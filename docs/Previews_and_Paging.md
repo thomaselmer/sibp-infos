@@ -1,4 +1,4 @@
-# Page previews, paging and grouping (T-13)
+# Page previews (T-13), paging and grouping (T-26)
 
 Plan agreed with Andreas on 2026-11-25.
 
@@ -32,6 +32,29 @@ Plan agreed with Andreas on 2026-11-25.
   plans labelled inside "keep" (`is_construction_plan`). Each group collapsible and paged like the file table;
   previews load only for open groups.
 - **Api:** paging (`limit`/`offset`) and the group filter on both lists, so the browser never loads a whole project.
+
+## Split (Andreas, 2026-11-25)
+- T-13 builds the previews, the cache headers and the content types now.
+- T-26 builds the paging and the groups after T-19 (batches, relative paths, `PAGE.sequence` change what the upload
+  page groups and orders by) and T-18 Q11 (which view shows documents after grouping).
+
+## Previews: details decided while building (Andreas, 2026-11-25)
+- **Image version in the links:** the page list returns `version` (the run part of the image key); the frontend
+  puts it into the preview and image links (`?v=`), so a page turned by ocr_page gets new links at once and the
+  browser can keep them for `storage.image_cache_seconds` (600 s locally, below the 900 s of a signed URL; the settings
+  refuse a longer one).
+- **No JPEG fallback:** the built backend image saves WebP (checked 2026-11-25); a missing WebP would fail the
+  preview tests.
+- **One-off command** `python -m app.pipeline.previews`: also makes the preview of a turned page's rendered image,
+  which a stage reset brings back.
+- Content type of stored files set by their extension (png, webp, jpg, pdf), from one list in the file store.
+- The preview of a rendered page is made from the image already decoded for its PNG (A0: about a quarter less time).
+- Not done, by choice: the api does not check that a preview exists before redirecting (a request per tile for a
+  case the command prevents); the command works one image at a time (one-off).
+
+## Built (submodule `572030b`, review fixes `2855bcf`; Architecture v40)
+- Locally: 36 pages, full images 534.7 MB, previews 0.79 MB; the command took 19 s for them and makes nothing on a
+  second run.
 
 ## Prerequisite
 - T-16: frontend tests (vitest + Testing Library, Playwright against the local Compose stack); the new views are

@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 39 · 2026-11-25 · Task T-3
+Status: **draft** · Version 40 · 2026-11-25 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -173,6 +173,7 @@ the sections, decisions and concept IDs here (Andreas, 2026-11-23). Paths are re
 | `backend/app/pipeline/ingest.py` | data model (job types: ingest_file) |
 | `backend/app/pipeline/ocr.py` | data model (job types: ocr_page), V03 |
 | `backend/app/modules/ai/` | section 6 (models, providers, fallbacks), A3, A4; `flows/ocr_page.py`: V03, D04 (document kinds), prompt from the prototype |
+| `backend/app/pipeline/previews.py` | section 7 (page previews: one-off command for older pages) |
 | `backend/app/pipeline/runs.py` | data model (user actions: start_run), section 7 (page limit of the tier) |
 | `backend/app/api/` | section 7, A9 and A9c (upload path), V01 (rejections reported together); permissions in T-4 step 4 |
 | `frontend/lib/api.ts` | section 7 (hand-written types until generated from OpenAPI) |
@@ -504,6 +505,17 @@ MVP starts with engineering offices (D17); HEIC is not listed in V01 and would b
   - **Upload into a document** (Andreas, 2026-11-25): started from a document; the user chooses the place in the
     document; these files get no batch and skip grouping, their pages run the steps they need.
   - Page images are shown the same way: the api redirects to a short-lived signed URL.
+  - **Page previews** (Andreas, 2026-11-25, T-13): every page image has a small WebP preview next to it (width and
+    quality in the YAML), made by `ingest_file` from the image it renders and by `ocr_page` for a turned page. Tiles
+    show the preview, a click opens the full image; the frontend never falls back to the full image. Pages stored
+    before previews get theirs from a one-off command (`python -m app.pipeline.previews`), which also covers the
+    rendered image of a turned page, since a stage reset brings it back.
+  - **Browser cache** (Andreas, 2026-11-25): the redirect and the signed URL carry `Cache-Control: private,
+    max-age=N` (`storage.image_cache_seconds`, refused unless below the signed URL's lifetime). The page list returns
+    the image version (the run part of the image key) and the links carry it, so a page with a new image gets new
+    links at once. Stored files carry their content type by extension.
+  - Previews do not count against the storage limit (an accepted small overshoot); they stay until the clean-up of
+    unreferenced files.
   - The api is never blocked by large files.
   - Exception to the wrapper rule (section 9): the browser writes the original upload around the file store wrapper.
     Once encryption is built, `ingest_file` rewrites the original through the wrapper (read, encrypt, replace) before
