@@ -86,7 +86,7 @@ The later steps need two things that are missing:
   shapes the answer is the model's vector size (no prompt). Same modes as today (live, record, replay).
 - **Configuration:** `job_models.embed_page: text-embedding-3-small`; the model under `models` with its provider;
   an `embed` section with the vector size (1536), the token limit for the input and the job timeout. The token
-  limit defaults to the prototype's 6,000. Startup check: the configured vector size equals the column's size.
+  limit is 6,000 (the prototype's value), set in every configuration file like all tuning numbers. Startup check: the configured vector size equals the column's size.
 - **Schema:** the vector extension enabled in a migration; `PAGE.embedding` as a 1536-dimension vector (nullable)
   and `PAGE.embedding_model` (nullable). No index yet (the duplicate check in T-25 decides which).
 - **Job type `embed_page`:** one per page; write target on the page; runs in the lane of its model's provider.
@@ -127,6 +127,8 @@ The later steps need two things that are missing:
 - Batching several pages into one embedding call (only if rate limits show it is needed).
 - Using the `title_*` features (grouping and classification come in T-21 to T-24).
 - Upload redesign, batches and `PAGE.sequence` (T-19).
+- Cost and time per page of `embed_page` in quality runs (user story 22): no per-job-type quality report exists yet;
+  it comes with that report (review 2026-11-25).
 
 ## Further Notes
 
