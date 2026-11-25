@@ -69,7 +69,6 @@ footer { font-size: 0.85rem; }
     <nav aria-label="Sections">
       <a href="#glossary">Terms</a>
       <a href="#actions">User actions</a>
-      <a href="#architecture">Architecture (parked)</a>
       <a href="#jobtypes">Job types</a>
       <a href="#changes-v40">Changes v39 → v40</a>
       <a href="#changes-v39">Changes v38 → v39</a>
@@ -479,25 +478,6 @@ footer { font-size: 0.85rem; }
         </tbody>
       </table>
     </div>
-  </section>
-
-  <section id="architecture">
-    <div class="head"><h2>Architecture, not ER model</h2><span class="tag">parked</span></div>
-    <p class="muted">Decisions about how the software works rather than what is stored; kept here so they are not lost (Andreas, 2026-11-17).</p>
-    <ul>
-      <li>A job's task delivers its own data type. <strong>Jobs do not touch the database</strong> (too many connections); the orchestrator collects their results and writes them in batches (Andreas, 2026-11-17).</li>
-      <li>One orchestrator per project; projects never reference each other (Andreas, 2026-11-17).</li>
-      <li>User actions create jobs whose precondition includes "Apply changes pressed" (Andreas, 2026-11-17).</li>
-      <li>Concern: the orchestrator turning into a god object. Suggested split: a generic engine (event intake, scheduling with the concurrency check, batch writer) plus one definition per job type (precondition, inputs, task, how its result is written, what it invalidates).</li>
-      <li>A job type also knows its follow-up job types, depending on its result (Andreas, 2026-11-17). The follow-ups are candidates; the engine checks each candidate's precondition and starts it only when it holds (needed where a job waits for several inputs, e.g. a border needs every page of its window). Confirmed by Andreas, 2026-11-17.</li>
-      <li>Concurrency rule of the orchestrator: a job starts only when none of its write targets is used by a running job and none of its read targets is being written.</li>
-      <li>Grouping precondition per border: decided once all pages in its window are read.</li>
-      <li><strong>Decided (Andreas, 2026-11-17):</strong> events are stored in a table; the engine keeps an in-memory view of the project state.</li>
-      <li><s>Suggested rule: jobs wait on state, never on an event.</s> Replaced in v28 by the event-driven design. Earlier text: An event only wakes the engine to check preconditions again. Then deleting a processed event affects no waiting job, and on start the engine rebuilds its view from the data and checks all preconditions once, so a lost wake-up heals itself. Processed events are kept: user events forever, autonomous ones about 30 days (v26).</li>
-      <li>Border state: stored per page (v27).</li>
-      <li><strong>Consistency check (Andreas, 2026-11-17):</strong> from time to time (e.g. when a project is idle) the orchestrator checks that waiting jobs still wait for something and running jobs still have a live worker; findings go to monitoring.</li>
-      <li><strong>Monitoring (Andreas, 2026-11-17):</strong> a separate log store for operations (e.g. Grafana) next to the <code>EVENT</code> table. <code>EVENT</code> is the project history for users and the orchestrator's input; the log store is for the operator, across all projects: job durations, failure rates, retries, queue length, worker heartbeats, token usage over time. Orchestrator and workers write structured logs or metrics in addition to events. Matches concept D14 ("Logging / Ereignisprotokoll" and "Systemmonitoring" as separate building blocks). Monitoring data holds only ids, counts and durations, no customer content (concept D06).</li>
-    </ul>
   </section>
 
   <section id="changes-v24">
