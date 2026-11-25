@@ -5,7 +5,7 @@ Format and rules: "Tasks" in `AGENTS.md`.
 
 ## In progress
 - [ ] T-33 Golden dataset on dev, read with the real models and recorded: worker volume for recordings, `MODEL_RECORDINGS` in the dev `.env`, command `app.tools.set_tier` (Enterprise for ~560 pages); Architecture v43 — started 2026-11-25
-  Next: built (submodule `0721def`, not pushed); Andreas: push, add `MODEL_RECORDINGS` to the dev `.env`, create the project, set its tier, upload the input folder, start; then copy the recordings into the golden dataset and remove the line again
+  Next: built (submodule `0721def`, not pushed); waits for T-28 (new ocr_page prompt, else the recordings are outdated at once); then Andreas: push, add `MODEL_RECORDINGS` to the dev `.env`, create the project, set its tier, upload the input folder, start; then copy the recordings into the golden dataset and remove the line again
 - [ ] T-20 Slice 1: `embed_page` (text-embedding-3-small) and the 6 missing `title_*` features read by `ocr_page` on every page — spec `docs/Page_Embeddings_and_Title_Features.md`; plan `docs/Grouping_and_Classification.md`; takes the embedding part of T-15 — started 2026-11-25
 - [ ] T-28 Title features on every page: `ocr_page` reads and stores all 11 `title_*` — parent T-20; spec `docs/Page_Embeddings_and_Title_Features.md`, section "Tickets" — started 2026-11-25
 - [ ] T-29 Embedding call in the model layer: fallbacks, slots, fake, recordings, `embed` config — parent T-20; spec `docs/Page_Embeddings_and_Title_Features.md`, section "Tickets" — started 2026-11-25
