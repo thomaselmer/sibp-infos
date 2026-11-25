@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 40 · 2026-11-25 · Task T-3
+Status: **draft** · Version 41 · 2026-11-25 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -485,8 +485,8 @@ MVP starts with engineering offices (D17); HEIC is not listed in V01 and would b
   - Pending uploads count against the storage from the moment their URL is handed out, so unconfirmed uploads
     cannot exceed it.
   - **Interrupted uploads** (Andreas, 2026-11-23, T-10): the browser sends the files itself, so leaving the page
-    stops an upload; the page asks first. Dropping the same files again continues: files of the same name and size
-    already in the project are skipped ("schon vorhanden"), pending ones continue in their own FILE with a new
+    stops an upload; the page asks first. Dropping the same files again continues: files of the same path and size
+    (the name for a single file; v41) already in the project are skipped ("schon vorhanden"), pending ones continue in their own FILE with a new
     signed URL.
   - **Sign of life** (Andreas, 2026-11-25): while it sends, the browser reports its running uploads alive, one
     request per batch every `upload.alive_every_seconds` (30 s, YAML); beginning or continuing an upload counts as
@@ -499,11 +499,16 @@ MVP starts with engineering offices (D17); HEIC is not listed in V01 and would b
   - **Folders and order** (Andreas, 2026-11-25, T-18, built in T-19): folders can be dropped or picked; each file
     keeps its path within the folder (`FILE.relative_path`). On "Verarbeitung starten" the api gives every ready file
     without a batch the next batch number (`FILE.batch`) and orders the batch naturally by relative path (folder by
-    folder, then file name, numbers compared as numbers; upload time breaks ties) into `upload_position`. Grouping
-    runs within a batch; a later batch never joins an older document. Each page gets its place in the original Akt
-    (`PAGE.sequence`), which moving pages never changes.
+    folder, then file name, case ignored, numbers compared as numbers and before text at the same place; upload time
+    breaks ties) into `upload_position`. Grouping runs within a batch; a later batch never joins an older document.
+    Each page gets its place in the original Akt (`PAGE.sequence`), which moving pages never changes: the pages of all
+    earlier files in batch order plus its index in the file, 1000 apart so a page can be put in between later. The
+    tier limit counts pages in this order. System files of a folder (`Thumbs.db`, `desktop.ini`, names starting with
+    a dot) are not sent. Files already split into pages before batches existed form batch 1 of their project, in
+    upload order (v41).
   - **Upload into a document** (Andreas, 2026-11-25): started from a document; the user chooses the place in the
-    document; these files get no batch and skip grouping, their pages run the steps they need.
+    document; these files get no batch and skip grouping, their pages run the steps they need. Built with the
+    documents (T-22; Andreas, 2026-11-25, v41).
   - Page images are shown the same way: the api redirects to a short-lived signed URL.
   - **Page previews** (Andreas, 2026-11-25, T-13): every page image has a small WebP preview next to it (width and
     quality in the YAML), made by `ingest_file` from the image it renders and by `ocr_page` for a turned page. Tiles

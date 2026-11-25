@@ -4,7 +4,10 @@ Progress tracker only; keeps the next session oriented. Done keeps the last 10 e
 Format and rules: "Tasks" in `AGENTS.md`.
 
 ## In progress
-- [ ] T-19 Upload redesign: folder upload, `FILE.relative_path`, batch per "Verarbeitung starten", natural order by path within a batch, `PAGE.sequence`, upload into an existing document — needed before grouping (`docs/Grouping_and_Classification.md`) — started 2026-11-25
+- [ ] T-20 Slice 1: `embed_page` (text-embedding-3-small) and the 6 missing `title_*` features read by `ocr_page` on every page — spec `docs/Page_Embeddings_and_Title_Features.md`; plan `docs/Grouping_and_Classification.md`; takes the embedding part of T-15 — started 2026-11-25
+- [ ] T-28 Title features on every page: `ocr_page` reads and stores all 11 `title_*` — parent T-20; spec `docs/Page_Embeddings_and_Title_Features.md`, section "Tickets" — started 2026-11-25
+- [ ] T-29 Embedding call in the model layer: fallbacks, slots, fake, recordings, `embed` config — parent T-20; spec `docs/Page_Embeddings_and_Title_Features.md`, section "Tickets" — started 2026-11-25
+  Next: implement-spec running on local branch `page-embeddings` in the submodule; T-28 and T-29 in progress, then T-30, T-31
 - [ ] T-10 Uploads survive interruptions: clear progress, warning before leaving, continue by name and size without duplicates, clean up abandoned uploads — started 2026-11-23
   Next: sign of life built, backend and browser (submodule `d7e566d`, `5c162af`; Architecture v37, data model v41), pushed; interrupt an upload on dev and see it shown as interrupted after 2 min, then done; order of continued uploads: handled by T-19 (batch, order by path)
 - [ ] T-9 Container images and a distributed deployment: workers on a remote host via SSH tunnel (stopover), then hosts by role on the office network with automatic deploy from self-hosted runners (target) — started 2026-11-23
@@ -22,19 +25,17 @@ Format and rules: "Tasks" in `AGENTS.md`.
 - [ ] T-32 Certificate and address for dev: Let's Encrypt via DNS challenge (provider, token) instead of Caddy's own authority, DNS entry for the address (left open in T-11)
 - [ ] T-26 Paged, collapsible groups: files by status on the upload page, pages by classification on the processing page, api paging and group filters — plan in `docs/Previews_and_Paging.md`; after T-19 (batches, paths, `PAGE.sequence`) and T-18 Q11 (document view)
 - [ ] T-27 Files before processing: one WebP preview per file (first page) made when the upload is confirmed, shown in the file list with the original on click; remove a file before processing (row, original, preview; `storage_used` goes down), processed files not yet; names of skipped files shown — same file table as T-26, build together; workflow to be confirmed by Thomas; open: removing a processed file (block, or remove its pages and results like a reset)
-- [ ] T-20 [ready-for-agent] Slice 1: `embed_page` (text-embedding-3-small) and the 6 missing `title_*` features read by `ocr_page` on every page — spec `docs/Page_Embeddings_and_Title_Features.md`; plan `docs/Grouping_and_Classification.md`; takes the embedding part of T-15
-- [ ] T-28 [ready-for-agent] Title features on every page: `ocr_page` reads and stores all 11 `title_*` — parent T-20; spec `docs/Page_Embeddings_and_Title_Features.md`, section "Tickets"
-- [ ] T-29 [ready-for-agent] Embedding call in the model layer: fallbacks, slots, fake, recordings, `embed` config — parent T-20; spec `docs/Page_Embeddings_and_Title_Features.md`, section "Tickets"
 - [ ] T-30 [ready-for-agent] `embed_page` after reading, with progress stage — parent T-20; Blocked by: T-29; spec `docs/Page_Embeddings_and_Title_Features.md`, section "Tickets"
 - [ ] T-31 [ready-for-agent] Catch-up and undo for embeddings: start run, re-read, resets — parent T-20; Blocked by: T-30; spec `docs/Page_Embeddings_and_Title_Features.md`, section "Tickets"
 - [ ] T-21 Slice 3: `decide_border` with the tier limit, rules behind a replaceable decision seam, per batch — needs T-19 — `docs/Grouping_and_Classification.md`; replaces T-17
-- [ ] T-22 Slice 4: `assemble_document` with simple attachment links, and the "Dokumente" view — needs T-21 — `docs/Grouping_and_Classification.md`
+- [ ] T-22 Slice 4: `assemble_document` with simple attachment links, and the "Dokumente" view and upload into an existing document (from T-19; the user chooses the place, no batch, `PAGE.sequence` in between) — needs T-21 — `docs/Grouping_and_Classification.md`
 - [ ] T-23 Slice 5: `find_sections` with `DOCUMENT_FEATURES` — needs T-22 — `docs/Grouping_and_Classification.md`
 - [ ] T-24 Slice 6: `classify_document`, `check_reference_numbers`, `NOTE` — needs T-23 — `docs/Grouping_and_Classification.md`
 - [ ] T-25 Slice 7: duplicate checks for files, pages and documents, reusing `NOTE` — needs T-24 — `docs/Grouping_and_Classification.md`; takes T-14 and T-15
 - [ ] T-7 Fill in `config/prod.yaml` in the source submodule before the first deployment (left empty on purpose, 2026-11-23; `dev.yaml` filled in T-9)
 
 ## Done
+- [x] T-19 Upload redesign — done 2026-11-25 — folders dropped or picked keep their paths, batch per "Verarbeitung starten" ordered by path, `PAGE.sequence` 1000 apart, tier limit in Akt order, already uploaded by path and size (submodule `ab9ef97`, Architecture v41); upload into a document moved to T-22
 - [x] T-11 Reach the dev environment directly — done 2026-11-25 — Caddy in front of frontend, api and Garage on the dev host, deployed from `andreas` for now (Architecture v35); the deploy switches to `dev` with T-9
 - [x] T-13 Page previews — done 2026-11-25 — WebP previews at ingest and for turned pages, one-off command for older pages, browser cache with the image version in the links, content types (submodule `572030b`, `2855bcf`; Architecture v40); run the command on dev after the next deploy
 - [x] T-18 Plan the job types from embed_page up to classify_document — done 2026-11-25 — plan in `docs/Grouping_and_Classification.md`, data model v42, architecture v39; slices are T-19 to T-25

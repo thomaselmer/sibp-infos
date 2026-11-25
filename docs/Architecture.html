@@ -72,6 +72,7 @@ footer { font-size: 0.85rem; }
     <nav aria-label="Sections">
       <a href="#picture">Current picture</a>
       <a href="#open">Open decisions</a>
+      <a href="#v41">v41</a>
       <a href="#v40">v40</a>
       <a href="#v39">v39</a>
       <a href="#v38">v38</a>
@@ -274,8 +275,23 @@ footer { font-size: 0.85rem; }
     </table></div>
   </section>
 
+  <section id="v41">
+    <div class="head"><h2>v41</h2><span class="tag current">current</span><span class="muted">2026-11-25 · folder upload and batches built</span></div>
+    <div class="tablebox"><table>
+      <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td><span class="kind add">built</span></td><td>Folders dropped or picked keep each file's path (<code>FILE.relative_path</code>); "Verarbeitung starten" makes the files uploaded since the last press the next batch (<code>FILE.batch</code>) and orders it by path: folder by folder, case ignored, numbers as numbers and before text at the same place, upload time breaks ties</td><td>T-19, as decided in v39; case and numbers before text follow how file managers list files</td></tr>
+        <tr><td><span class="kind add">built</span></td><td><code>PAGE.sequence</code>: pages of all earlier files in batch order plus the index in the file, 1000 apart; the page list and the tier limit follow it</td><td>The place in the Akt no longer depends on the order files were uploaded or split in; the spacing lets a page uploaded into a document fit in between without renumbering</td></tr>
+        <tr><td><span class="kind chg">changed</span></td><td>A file counts as already uploaded by path and size (the name for a single file), no longer by name and size</td><td>Folders of an Akt often hold files of the same name (<code>scan 1.pdf</code> in every part); by name only, all but one would have been skipped</td></tr>
+        <tr><td><span class="kind add">decided</span></td><td>System files of a folder (<code>Thumbs.db</code>, <code>desktop.ini</code>, names starting with a dot) are not sent</td><td>They are never part of an Akt; sent, each would be listed as refused</td></tr>
+        <tr><td><span class="kind chg">changed</span></td><td>Existing projects: files already split into pages form batch 1, in upload order; ready files not yet split get the next batch on the next press</td><td>Migration of data from before batches</td></tr>
+        <tr><td><span class="kind chg">changed</span></td><td>Upload into a document moved to T-22, built with the documents</td><td>Andreas, 2026-11-25: documents exist only from <code>assemble_document</code></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
   <section id="v40">
-    <div class="head"><h2>v40</h2><span class="tag current">current</span><span class="muted">2026-11-25 · page previews and browser cache</span></div>
+    <div class="head"><h2>v40</h2><span class="tag">earlier</span><span class="muted">2026-11-25 · page previews and browser cache</span></div>
     <div class="tablebox"><table>
       <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
       <tbody>
