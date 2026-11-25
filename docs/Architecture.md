@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 41 · 2026-11-25 · Task T-3
+Status: **draft** · Version 42 · 2026-11-25 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -497,14 +497,16 @@ MVP starts with engineering offices (D17); HEIC is not listed in V01 and would b
     as running and blocking the storage. The order of continued files no longer matters: the order is set per batch
     (below). **Open:** the cleanup of other unreferenced files.
   - **Folders and order** (Andreas, 2026-11-25, T-18, built in T-19): folders can be dropped or picked; each file
-    keeps its path within the folder (`FILE.relative_path`). On "Verarbeitung starten" the api gives every ready file
-    without a batch the next batch number (`FILE.batch`) and orders the batch naturally by relative path (folder by
+    keeps its path within the folder (`FILE.relative_path`). On "Verarbeitung starten" the api, at the press itself,
+    gives every ready file without a batch the next batch number (`FILE.batch`; a file ready after the press waits for
+    the next one, v42) and orders the batch naturally by relative path (folder by
     folder, then file name, case ignored, numbers compared as numbers and before text at the same place; upload time
     breaks ties) into `upload_position`. Grouping runs within a batch; a later batch never joins an older document.
     Each page gets its place in the original Akt (`PAGE.sequence`), which moving pages never changes: the pages of all
-    earlier files in batch order plus its index in the file, 1000 apart so a page can be put in between later. The
-    tier limit counts pages in this order. System files of a folder (`Thumbs.db`, `desktop.ini`, names starting with
-    a dot) are not sent. Files already split into pages before batches existed form batch 1 of their project, in
+    earlier files in batch order (`FILE.pages_before`, set with the batch; v42) plus its index in the file, 1000 apart
+    so a page can be put in between later. The tier limit counts pages in this order. System files of a folder
+    (`Thumbs.db`, `desktop.ini`) and hidden files and folders (names starting with a dot, with all they hold; v42) are
+    not sent; a dropped folder shows while it is read, and says so if it cannot be read. Files already split into pages before batches existed form batch 1 of their project, in
     upload order (v41).
   - **Upload into a document** (Andreas, 2026-11-25): started from a document; the user chooses the place in the
     document; these files get no batch and skip grouping, their pages run the steps they need. Built with the

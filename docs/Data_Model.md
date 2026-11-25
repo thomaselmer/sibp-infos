@@ -1,6 +1,6 @@
 # paragraph82b — Data Model
 
-Status: **draft** · current version **v42** · 2026-11-25
+Status: **draft** · current version **v43** · 2026-11-25
 
 Final result only: this file shows the current model. How it got here (all versions and changes) is in `Data_Model.html`, published as an artifact: https://claude.ai/artifact/EHPCd6tJNDvKj14RwmwSH6. English names, each mapped to a concept term (see `GLOSSARY.md`). How the software works (orchestrator, workers, monitoring) is in [`Architecture.md`](Architecture.md).
 
@@ -18,7 +18,7 @@ An orchestrator reacts to events (job finished, user action), checks each job ty
 
 | Action | Invalidates | Orchestrator queues |
 |---|---|---|
-| Start run | – | Everything whose precondition is met; every ready file without a batch gets the next batch number (v42) |
+| Start run | – | Everything whose precondition is met; at the press, every ready file without a batch gets the next batch number and its pages before it (v42, v43); a file ready after the press waits for the next one |
 | Cancel | Nothing; the pool is cleared and the orchestrator adds nothing new; at most some token usage remains. No cancel of single jobs (Andreas, 2026-11-17) | – |
 | Rerun | Everything (with warning) | Everything, from OCR |
 | Reset to before a job type (development tool; only with `stage_reset` in local and dev, never in prod) | That job type and every later one: their results and jobs are deleted (Andreas, 2026-11-23) | Nothing; Start run queues them again |
@@ -88,7 +88,7 @@ Decided (Andreas, 2026-11-17): page turning stays inside ocr_page; duplicate che
 
 Decided (Andreas, 2026-11-25, v42), grouping: grouping runs per batch, the files of one press of "Verarbeitung starten"; within a batch the api orders the files by relative path. The batch's first page and every change between process and keep pages (discard pages skipped) and between photos and PDF pages (v32) are fixed borders. discard pages belong to no document; a skipped discard page ("separator between") and a change of folder are weak inputs only. keep pages form documents of their own; assemble_document attaches each to the process document right before it (DOCUMENT.attached_to_document_id); a later batch never joins an older document. The border decision and the type decision sit behind a seam each, so a trained model can replace the rules later. Plan and reasons: `Grouping_and_Classification.md`.
 
-## Entity-relationship diagram (v42)
+## Entity-relationship diagram (v43)
 
 ```mermaid
 erDiagram
@@ -193,6 +193,7 @@ string content_hash "nullable until ready"
 int page_count "nullable until ready"
 int upload_position "order within the batch, set by the api by relative path"
 int batch "nullable, set on Verarbeitung starten; empty when uploaded into a document"
+int pages_before "nullable, pages of all earlier files in Akt order, counted on upload; set with the batch"
 string duplicate_state "nullable, original or duplicate"
 datetime uploaded_at
 datetime upload_seen_at "last sign of life of a pending upload"

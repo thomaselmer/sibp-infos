@@ -35,7 +35,7 @@ Format and rules: "Tasks" in `AGENTS.md`.
 - [ ] T-7 Fill in `config/prod.yaml` in the source submodule before the first deployment (left empty on purpose, 2026-11-23; `dev.yaml` filled in T-9)
 
 ## Done
-- [x] T-19 Upload redesign — done 2026-11-25 — folders dropped or picked keep their paths, batch per "Verarbeitung starten" ordered by path, `PAGE.sequence` 1000 apart, tier limit in Akt order, already uploaded by path and size (submodule `ab9ef97`, Architecture v41); upload into a document moved to T-22
+- [x] T-19 Upload redesign — done 2026-11-25 — folders dropped or picked keep their paths, batch per "Verarbeitung starten" ordered by path, `PAGE.sequence` 1000 apart, tier limit in Akt order, already uploaded by path and size (submodule `ab9ef97`, review fixes `edcc865`: batch at the press, hidden folders left out, `FILE.pages_before`; Architecture v42, data model v43); upload into a document moved to T-22
 - [x] T-11 Reach the dev environment directly — done 2026-11-25 — Caddy in front of frontend, api and Garage on the dev host, deployed from `andreas` for now (Architecture v35); the deploy switches to `dev` with T-9
 - [x] T-13 Page previews — done 2026-11-25 — WebP previews at ingest and for turned pages, one-off command for older pages, browser cache with the image version in the links, content types (submodule `572030b`, `2855bcf`; Architecture v40); run the command on dev after the next deploy
 - [x] T-18 Plan the job types from embed_page up to classify_document — done 2026-11-25 — plan in `docs/Grouping_and_Classification.md`, data model v42, architecture v39; slices are T-19 to T-25

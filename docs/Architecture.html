@@ -72,6 +72,7 @@ footer { font-size: 0.85rem; }
     <nav aria-label="Sections">
       <a href="#picture">Current picture</a>
       <a href="#open">Open decisions</a>
+      <a href="#v42">v42</a>
       <a href="#v41">v41</a>
       <a href="#v40">v40</a>
       <a href="#v39">v39</a>
@@ -275,8 +276,23 @@ footer { font-size: 0.85rem; }
     </table></div>
   </section>
 
+  <section id="v42">
+    <div class="head"><h2>v42</h2><span class="tag current">current</span><span class="muted">2026-11-25 · review fixes of the folder upload</span></div>
+    <div class="tablebox"><table>
+      <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td><span class="kind chg">changed</span></td><td>The batch is formed at the press itself, in the api, from the files ready at that moment; the engine splits only files in a batch</td><td>Andreas, 2026-11-25: formed when the engine picked the press up, a file that became ready in between joined a batch the user had not seen</td></tr>
+        <tr><td><span class="kind chg">changed</span></td><td>Hidden folders (names starting with a dot, e.g. <code>.git</code>, <code>.thumbnails</code>) are left out with all they hold, dropped or picked</td><td>Andreas, 2026-11-25: only hidden files were left out</td></tr>
+        <tr><td><span class="kind add">new</span></td><td><code>FILE.pages_before</code>, set with the batch; <code>PAGE.sequence</code> and the tier limit read it (data model v43)</td><td>Review: summing all earlier files for every split file grew with files × files</td></tr>
+        <tr><td><span class="kind chg">changed</span></td><td>A dropped folder shows "Ordner wird gelesen …" while it is walked and an error if it cannot be read</td><td>Review: a large folder showed nothing, a failed read nothing at all</td></tr>
+        <tr><td><span class="kind chg">changed</span></td><td>Digits that are no numbers (<code>²</code>, <code>①</code>) sort as text</td><td>Review: a folder named <code>²</code> made "Verarbeitung starten" fail for the project</td></tr>
+        <tr><td><span class="kind chg">decided</span></td><td>The spacing of <code>PAGE.sequence</code> (1000) stays in code</td><td>Andreas, 2026-11-25: not a tuning number; changing it once pages exist would break the spacing</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
   <section id="v41">
-    <div class="head"><h2>v41</h2><span class="tag current">current</span><span class="muted">2026-11-25 · folder upload and batches built</span></div>
+    <div class="head"><h2>v41</h2><span class="tag">earlier</span><span class="muted">2026-11-25 · folder upload and batches built</span></div>
     <div class="tablebox"><table>
       <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
       <tbody>
