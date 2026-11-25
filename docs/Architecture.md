@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 37 · 2026-11-25 · Task T-3
+Status: **draft** · Version 38 · 2026-11-25 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -176,6 +176,8 @@ the sections, decisions and concept IDs here (Andreas, 2026-11-23). Paths are re
 | `backend/app/pipeline/runs.py` | data model (user actions: start_run), section 7 (page limit of the tier) |
 | `backend/app/api/` | section 7, A9 and A9c (upload path), V01 (rejections reported together); permissions in T-4 step 4 |
 | `frontend/lib/api.ts` | section 7 (hand-written types until generated from OpenAPI) |
+| `backend/app/modules/ai/stand_ins.py`, `config/e2e*.yaml` | section 11 (fake provider, recorded model answers, the two tiers) |
+| `frontend/**/*.test.ts(x)`, `frontend/e2e/`, `backend/tests/golden/` | section 11 (frontend tests, end to end, golden tier) |
 
 ## 5. Processing runtime
 
@@ -638,7 +640,9 @@ through wrappers that will handle encryption later; today they pass data through
   user would upload them; quality runs feed these through the upload path, and the application changes only its own
   copies in the file store. `P82B_GOLDEN_DATASET_DIR` holds the expected result to compare against. **Neither
   folder is ever written to** by the application or the tests; both paths are machine-local, in `.env`. The drive
-  does not enforce this yet (the folders are writable for the local user).
+  does not enforce this yet (the folders are writable for the local user). **Exception** (Andreas, 2026-11-25,
+  T-16): the recorder writes the recorded model answers into `recordings/` of `P82B_GOLDEN_DATASET_DIR`, and nothing
+  else; the dataset fixture skips that folder (top-level folders are document types).
 - **Building it up** (Andreas, 2026-11-23): first run on the raw input, then Andreas reviews the results and reports
   findings in the terminal; corrections become tests first (below). The golden dataset grows from what he confirms.
 
@@ -675,11 +679,33 @@ through wrappers that will handle encryption later; today they pass data through
 | engine tests | preconditions, invalidation, restart, lanes, cap per project, with fake workers | no model |
 | integration | whole flow with PostgreSQL, Redis and Garage in Docker Compose | made-up mini Akt |
 | quality runs and eval cases | stage metrics and error cases | golden dataset, local only |
+| frontend unit and component (vitest, Testing Library) | logic and pages; the api answered by Mock Service Worker, a request no test answers fails the test | made-up |
+| end to end (Playwright) | the whole application in a browser, started next to local development: own database, Redis database and ports | made-up mini Akt, fake model |
+| golden end to end and golden tests | the golden dataset through the real path with recorded model answers; files found, pages per file, comparison with the expected result as the label format allows | golden dataset, local only |
 
-- **Recorded model answers** (Andreas, 2026-11-18, where possible and not too costly): automated tests replay
-  recorded model answers (on made-up data); live model calls only in eval cases and quality runs. Where recording
-  costs more than it saves (e.g. a flow still changing every day), that test calls the model live and is kept out
-  of the default test run.
+Decided (Andreas, 2026-11-25, T-16): the frontend gets tests of its own; there were none before (a gap, not a
+decision).
+
+- **Two tiers.** The *always* tier needs no drive and no model: backend unit and integration tests, vitest, and the
+  end-to-end flows on made-up pages. The *golden* tier runs locally only, when the dataset is reachable. Without it
+  the golden tests are skipped and the run ends with "NOT EVERYTHING WAS TESTED". Golden runs keep no screenshots,
+  videos or traces, since they would show real pages.
+- **Fake model provider** (`kind: fake`): answers without a network call from a coloured bar on the made-up pages
+  (red irrelevant, blue plan, none process), so every classification can be produced. Refused in prod.
+- **Recorded model answers** (Andreas, 2026-11-18, where possible and not too costly; extended 2026-11-25):
+  automated tests replay recorded model answers; live model calls only in eval cases, quality runs and recording.
+  - `model_recordings.mode`: `live`, `record` (calls only what is not recorded with the current logic) or `replay`
+    (never calls a model). Refused in prod (anything but `live`).
+  - **Per model:** every call is recorded under the model that was called, a fallback's call too, with its answer
+    or the fact that it was unavailable. A replay runs the same chain; when a fallback is needed again, its answer
+    is there. A rate limit is not recorded (no fallback case).
+  - A recording is found by the images of the call and holds a fingerprint of the prompt and the answer schema;
+    when they change, the recording is outdated and a replay fails, naming what to record, instead of guessing.
+  - The golden dataset is recorded once, on demand (it costs tokens), and again after changes to that logic.
+  - Where recording costs more than it saves (e.g. a flow still changing every day), that test calls the model live
+    and is kept out of the default test run.
+- **Exception to "tests use made-up data"** (Andreas, 2026-11-25): the golden tier uses the golden dataset, locally
+  only; its recordings stay with the dataset, never in Git.
 
 ## 12. Deployment and environments
 

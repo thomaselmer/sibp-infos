@@ -72,6 +72,7 @@ footer { font-size: 0.85rem; }
     <nav aria-label="Sections">
       <a href="#picture">Current picture</a>
       <a href="#open">Open decisions</a>
+      <a href="#v38">v38</a>
       <a href="#v37">v37</a>
       <a href="#v36">v36</a>
       <a href="#v35">v35</a>
@@ -271,8 +272,24 @@ footer { font-size: 0.85rem; }
     </table></div>
   </section>
 
+  <section id="v38">
+    <div class="head"><h2>v38</h2><span class="tag current">current</span><span class="muted">2026-11-25 · frontend tests, fake model, recorded answers, golden tier</span></div>
+    <div class="tablebox"><table>
+      <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td><span class="kind add">decided</span></td><td>Frontend tests: vitest with Testing Library for logic and pages (api answered by Mock Service Worker; an unanswered request fails the test), Playwright end to end against the whole application, started next to local development with its own database, Redis database and ports</td><td>Andreas, 2026-11-25 (T-16): the frontend had no tests; a gap, not a decision</td></tr>
+        <tr><td><span class="kind add">decided</span></td><td>Two tiers: <em>always</em> (no drive, no model: made-up pages, fake provider) and <em>golden</em> (golden dataset with recorded answers, local only); a run without the dataset ends with "NOT EVERYTHING WAS TESTED"; golden runs keep no screenshots, videos or traces</td><td>Andreas, 2026-11-25: tests on real data where it matters, without hiding that they were skipped</td></tr>
+        <tr><td><span class="kind add">new</span></td><td>Model provider <code>kind: fake</code>: reads a coloured bar on made-up pages (red irrelevant, blue plan, none process); refused in prod</td><td>Andreas, 2026-11-25: end-to-end runs without paid calls; a fake that only sees the image cannot read a word marker</td></tr>
+        <tr><td><span class="kind add">decided</span></td><td><code>model_recordings</code> (live, record, replay): every call recorded under the model that was called, fallbacks included, with its answer or that it was unavailable; a rate limit is not recorded; found by the images of the call; a changed prompt or answer schema makes a recording outdated and a replay fail, naming what to record; refused in prod</td><td>Andreas, 2026-11-25: record the golden dataset once and again after changes to the logic; per model, so a fallback's answer is there when the fallback is needed again</td></tr>
+        <tr><td><span class="kind chg">changed</span></td><td>Recordings live in <code>recordings/</code> of <code>P82B_GOLDEN_DATASET_DIR</code>, written only by the recorder; exception to "neither folder is ever written to"</td><td>Andreas, 2026-11-25: the recordings hold real text and belong with the dataset, never in Git</td></tr>
+        <tr><td><span class="kind chg">changed</span></td><td>Exception to "tests use made-up data": the golden tier, locally only</td><td>Andreas, 2026-11-25</td></tr>
+        <tr><td><span class="kind chg">open</span></td><td>The golden tier compares files found and pages per file; the comparison with the expected result follows the label format of the dataset and the stages that produce what it labels</td><td>Label format not settled yet (Andreas, 2026-11-25)</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
   <section id="v37">
-    <div class="head"><h2>v37</h2><span class="tag current">current</span><span class="muted">2026-11-25 · uploads report a sign of life</span></div>
+    <div class="head"><h2>v37</h2><span class="tag">earlier</span><span class="muted">2026-11-25 · uploads report a sign of life</span></div>
     <div class="tablebox"><table>
       <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
       <tbody>

@@ -41,7 +41,8 @@ This file states the rules for agents completely. Decisions with background are 
 6. **Confidential data.** All data of this project is confidential. Never write secrets (passwords, tokens, keys,
    connection strings), real personal, customer or financial data, or excerpts from real documents or databases
    into any file, commit or external service. Refer to them by name instead (e.g. "see variable `DB_URL`").
-   Examples and tests use made-up data. When unsure, ask.
+   Examples and tests use made-up data; exception: tests on the golden dataset, which run locally only and keep
+   their recordings with the dataset, never in Git (`docs/Architecture.md`, section 11). When unsure, ask.
 7. **Local development only.** Agents develop and test only locally; they do not change, deploy to or query shared
    or live environments.
 8. **Engineering quality.**
