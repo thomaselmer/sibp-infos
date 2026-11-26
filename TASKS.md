@@ -4,6 +4,8 @@ Progress tracker only; keeps the next session oriented. Done keeps the last 10 e
 Format and rules: "Tasks" in `AGENTS.md`.
 
 ## In progress
+- [ ] T-36 Reading the golden dataset share — started 2026-11-26
+  Next: implement and test the dataset reader on the integration branch.
 - [ ] T-33 Golden dataset on dev, read with the real models and recorded: worker volume for recordings, `MODEL_RECORDINGS` in the dev `.env`, command `app.tools.set_tier` (Enterprise for ~560 pages); Architecture v43 — started 2026-11-25
   Changed 2026-11-26 (golden tests, `docs/Golden_Tests.md`): the one recording run; workers record straight into `ds_recordings` on the share (mounted on the dev core host at `/mnt/nas/paragraph82b/goldendataset`) instead of a volume, so no copy step; Andreas inspects the results in the app, findings go to `ds_findings`
   Next: built (submodule `0721def`, not pushed); T-28 merged (`8066360`); Andreas: push, add `MODEL_RECORDINGS` to the dev `.env`, empty "Mein Betrieb" (reset dev, readme) if needed, set its tier, upload the input folder, start; then copy the recordings into the golden dataset and remove the line again
@@ -21,9 +23,8 @@ Format and rules: "Tasks" in `AGENTS.md`.
 ## Blocked
 
 ## Open
-- [ ] T-43 Upload list during a running upload: "Ihre Uploads" stays at its old state until the whole upload ends (with ~550 files it looks as if nothing happened); show the files as they arrive, without reloading the list for every file (Andreas, 2026-11-26)
+- [ ] T-43 Upload page, seen during the golden upload on dev (Andreas, 2026-11-26): (1) "Ihre Uploads" stays at its old state until the whole upload ends (with ~550 files it looks as if nothing happened); show the files as they arrive, without reloading the list for every file; (2) two select buttons ("Dateien auswählen" in the drop zone, "Ordner auswählen" below) feel redundant; one control for files or a folder; (3) refused files show only in the upload box (a few while uploading, all in the summary) and never in the list, files the browser leaves out (system and hidden files) nowhere; show both, with the reason; takes "names of skipped files shown" from T-27
 - [ ] T-34 Golden tests with labels and approved results on the dev core host: replay workflow started by hand (no record mode), `ds_` folders on the share, matching by hash, proposals (classification, order with checks, attachments), reports, snapshot per run, measures for classification and grouping, nothing uploaded to GitHub; architecture section 11 — spec `docs/Golden_Tests.md` — Blocked by: T-33; tickets T-36 to T-42
-- [ ] T-36 [ready-for-agent] Reading the share: only `1_` folders, only `ds_` writable (`recordings/` → `ds_recordings`), `types.csv`, matching by hash, gaps and renames — parent T-34; spec `docs/Golden_Tests.md`, section "Tickets"
 - [ ] T-37 [ready-for-agent] Measures and report: page classification, grouping exact/split/joined, `ds_reports`, fail when worse — parent T-34; Blocked by: T-36; spec `docs/Golden_Tests.md`, section "Tickets"
 - [ ] T-38 [ready-for-agent] Proposals and approval: `*.proposed.csv`, approval by rename, lapse on change, attachments as subfolders, differences fail — parent T-34; Blocked by: T-37; spec `docs/Golden_Tests.md`, section "Tickets"
 - [ ] T-39 [ready-for-agent] Order proposals with content checks: `position`, `check` — parent T-34; Blocked by: T-38; spec `docs/Golden_Tests.md`, section "Tickets"
