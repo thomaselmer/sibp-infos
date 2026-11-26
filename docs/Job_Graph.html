@@ -1,0 +1,156 @@
+<title>paragraph82b Job Graph</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* One reading column; each section: short text, then its diagram in its own sideways-scrolling frame. Same look as the project's architecture page. */
+:root {
+  --bg: #f6f7f9; --surface: #ffffff; --fg: #16202c; --muted: #5b6878; --line: #d7dde5; --accent: #2f5d8a;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #11161d; --surface: #18202a; --fg: #e4e9ef; --muted: #98a5b4; --line: #2c3743; --accent: #7fb0e0; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --bg: #11161d; --surface: #18202a; --fg: #e4e9ef; --muted: #98a5b4; --line: #2c3743; --accent: #7fb0e0; color-scheme: dark; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 32px 64px;
+}
+.wrap { max-width: 1000px; margin: 0 auto; display: grid; gap: 40px; }
+header { display: grid; gap: 8px; }
+h1 { font-size: 1.7rem; font-weight: 600; margin: 0; text-wrap: balance; }
+h2 { font-size: 1.15rem; font-weight: 600; margin: 0; text-wrap: balance; }
+p, li { max-width: 70ch; }
+p { margin: 0; }
+.muted { color: var(--muted); }
+.eyebrow { font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+section { display: grid; gap: 12px; min-width: 0; }
+code { font-family: var(--mono); font-size: 0.88em; }
+ul { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; }
+.diagram { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); padding: 16px; }
+.diagram pre.mermaid { margin: 0; min-width: 640px; background: transparent; }
+table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+.tablebox { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+th, td { text-align: left; vertical-align: top; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+tr:last-child td { border-bottom: 0; }
+th { font-weight: 500; color: var(--muted); font-size: 0.8rem; letter-spacing: 0.04em; text-transform: uppercase; }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">paragraph82b · processing runtime · T-35 draft</span>
+    <h1>Job Graph</h1>
+    <p class="muted">How the scheduling core (<code>engine/graph.py</code> on branch <code>engine-robustness</code>, not merged yet) is linked: where it sits, what one job goes through, how jobs block each other, and which job types exist.</p>
+  </header>
+
+  <section>
+    <h2>1. Where the graph sits</h2>
+    <p>The graph is pure logic: no database, no Redis. The engine (one per project) is the shell around it. It always writes a decision to PostgreSQL first and only then tells the graph, so the graph only ever holds committed state.</p>
+    <div class="diagram"><pre class="mermaid">
+flowchart LR
+  EV["User event<br/>e.g. Verarbeitung starten"] --> ENG
+  subgraph ENG["Engine (one per project)"]
+    direction TB
+    H["Event handler / job type<br/>returns new jobs"] --> DB1["Write jobs to PostgreSQL"]
+    DB1 --> GA["graph.add"]
+    GA --> GR["graph.runnable(free slots)"]
+    GR --> DB2["Mark queued in PostgreSQL"]
+    DB2 --> GS["graph.sent<br/>(attempt + 1)"]
+    RES["Result arrives"] --> GD["graph.decide<br/>→ transitions"]
+    GD --> AP["apply_result writes result<br/>(savepoint) + follow-up jobs"]
+    AP --> DB3["Write transitions to PostgreSQL"]
+    DB3 --> GC["graph.commit"]
+    GC --> GA
+  end
+  GS --> LQ[("Redis lane queue<br/>one per provider")]
+  LQ --> W["Worker<br/>runs the task, no database"]
+  W --> RS[("Redis result stream<br/>one per project")]
+  RS --> RES
+</pre></div>
+  </section>
+
+  <section>
+    <h2>2. What one job goes through</h2>
+    <p>Status in the database: <code>waiting</code>, <code>queued</code>, <code>done</code>, <code>failed</code>. "Running" exists only in Redis. Done and failed jobs leave the graph; they stay in the database.</p>
+    <div class="diagram"><pre class="mermaid">
+stateDiagram-v2
+  [*] --> waiting: created
+  waiting --> queued: runnable (dependencies done, targets free) → sent, attempt + 1
+  queued --> done: result OK
+  queued --> waiting: 1st failure → timeout × 2
+  queued --> waiting: lease expired → same timeout
+  queued --> failed: 2nd failure
+  queued --> failed: attempts reached max_attempts
+  queued --> failed: result cannot be written (no retry)
+  waiting --> failed: a job it waits on failed
+  done --> [*]
+  failed --> [*]
+</pre></div>
+    <p class="muted">New in T-35: the attempt cap (<code>max_attempts</code> in the config), "result cannot be written" fails one job instead of stopping the project, and a job waiting on a failed job fails too instead of waiting forever.</p>
+  </section>
+
+  <section>
+    <h2>3. How jobs block each other</h2>
+    <p>Two kinds of links decide when a waiting job may run:</p>
+    <ul>
+      <li><strong>Dependencies</strong> (table <code>JOB_DEPENDENCY</code>): "B may only start after A is done". Not used by any job type yet; <code>decide_border</code> (T-21) will be the first, waiting for the reading of every page in its window.</li>
+      <li><strong>Targets</strong> (table <code>JOB_TARGET</code>): each job reads or writes objects (a file, a page). A job only starts if none of its write targets is in use, and none of its read targets is being written.</li>
+    </ul>
+    <div class="diagram"><pre class="mermaid">
+flowchart LR
+  subgraph done["done"]
+    O1["ocr_page<br/>page 1"]
+    O2["ocr_page<br/>page 2"]
+  end
+  subgraph pool["in the pool"]
+    O3["ocr_page<br/>page 3<br/>writes page 3"]
+  end
+  subgraph waiting["waiting"]
+    E3["embed_page<br/>page 3<br/>writes page 3"]
+    E2["embed_page<br/>page 2<br/>writes page 2"]
+    B23["decide_border 2|3<br/>(T-21, later)<br/>reads pages 1–4"]
+  end
+  O3 -. "target busy:<br/>page 3 is written" .-> E3
+  O1 -- "dependency done" --> B23
+  O2 -- "dependency done" --> B23
+  O3 -- "dependency open" --> B23
+  E2:::ready
+  classDef ready stroke-width:3px
+</pre></div>
+    <p class="muted">In this example only <code>embed_page</code> of page 2 can start now (thick border). <code>embed_page</code> of page 3 waits for its target, the border waits for the reading of page 3. Among runnable jobs: lower priority first (0 = "Apply changes", 1 = normal), then creation order.</p>
+  </section>
+
+  <section>
+    <h2>4. Which job types exist and how they follow each other</h2>
+    <p>Today the chain runs through <strong>follow-ups</strong>: when a job's result is written, its job type returns the next jobs. Dashed: planned in the slices T-21 to T-24.</p>
+    <div class="diagram"><pre class="mermaid">
+flowchart LR
+  SR(["Verarbeitung starten"]) --> IF["ingest_file<br/>per file · writes file"]
+  SR -. "catch-up: pages not read<br/>or not embedded" .-> OP
+  IF --> OP["ocr_page<br/>per page · writes page"]
+  OP -- "if process + text" --> EP["embed_page<br/>per page · writes page"]
+  OP -.-> DB["decide_border<br/>per pair of pages"]
+  DB -.-> AD["assemble_document<br/>per stretch"]
+  AD -.-> FS["find_sections<br/>per document"]
+  FS -.-> CD["classify_document<br/>per document"]
+</pre></div>
+  </section>
+
+  <section>
+    <h2>Graph operations at a glance</h2>
+    <div class="tablebox"><table>
+      <thead><tr><th>Operation</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><code>add</code></td><td>Adopts new or loaded jobs with their open dependencies and targets</td></tr>
+        <tr><td><code>runnable(limit)</code></td><td>Waiting jobs with all dependencies done and targets free, by priority then age, at most the free slots</td></tr>
+        <tr><td><code>sent</code></td><td>Marks jobs as in the pool under a new attempt</td></tr>
+        <tr><td><code>decide</code></td><td>Turns a result (done, failed, lease expired) into transitions; ignores older attempts</td></tr>
+        <tr><td><code>fail</code></td><td>Lasting failure without retry, e.g. a result that cannot be written</td></tr>
+        <tr><td><code>commit</code></td><td>Applies transitions after the database is written; done jobs free their dependents</td></tr>
+        <tr><td><code>drop</code></td><td>Forgets deleted jobs (stage reset)</td></tr>
+        <tr><td><code>is_idle</code></td><td>Nothing in the pool and nothing that could run: the engine may be unloaded</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+</div>
