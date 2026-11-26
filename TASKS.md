@@ -5,6 +5,7 @@ Format and rules: "Tasks" in `AGENTS.md`.
 
 ## In progress
 - [ ] T-33 Golden dataset on dev, read with the real models and recorded: worker volume for recordings, `MODEL_RECORDINGS` in the dev `.env`, command `app.tools.set_tier` (Enterprise for ~560 pages); Architecture v43 — started 2026-11-25
+  Changed 2026-11-26 (golden tests, `docs/Golden_Tests.md`): the one recording run; workers record straight into `ds_recordings` on the share (mounted on the dev core host at `/mnt/nas/paragraph82b/goldendataset`) instead of a volume, so no copy step; Andreas inspects the results in the app, findings go to `ds_findings`
   Next: built (submodule `0721def`, not pushed); T-28 merged (`8066360`); Andreas: push, add `MODEL_RECORDINGS` to the dev `.env`, empty "Mein Betrieb" (reset dev, readme) if needed, set its tier, upload the input folder, start; then copy the recordings into the golden dataset and remove the line again
 - [ ] T-10 Uploads survive interruptions: clear progress, warning before leaving, continue by name and size without duplicates, clean up abandoned uploads — started 2026-11-23
   Next: sign of life built, backend and browser (submodule `d7e566d`, `5c162af`; Architecture v37, data model v41), pushed; interrupt an upload on dev and see it shown as interrupted after 2 min, then done; order of continued uploads: handled by T-19 (batch, order by path)
@@ -20,14 +21,14 @@ Format and rules: "Tasks" in `AGENTS.md`.
 ## Blocked
 
 ## Open
-- [ ] T-34 Golden tests on the dev core host instead of locally (Andreas, 2026-11-25: keep the compute load there): manually started workflow on its runner (replay or record, never on push), drive mounted there and dataset paths in its `.env`, OpenAI key there for recording, nothing uploaded to GitHub (no artifacts, only pass/fail); architecture update when started — Blocked by: T-20, drive not mounted on the host yet; start after everything open is finished; related to T-33 (records on dev through a normal run, recordings copied by hand) — with the drive mounted at `/mnt/nas/paragraph82b` the copy step may fall away; to be settled when T-34 starts
+- [ ] T-34 Golden tests with labels and approved results on the dev core host: replay workflow started by hand (no record mode), `ds_` folders on the share, matching by hash, proposals (classification, order with checks, attachments), reports, snapshot per run, measures for classification and grouping, nothing uploaded to GitHub; architecture section 11 — spec `docs/Golden_Tests.md` — Blocked by: T-33, T-35
 - [ ] T-32 Certificate and address for dev: Let's Encrypt via DNS challenge (provider, token) instead of Caddy's own authority, DNS entry for the address (left open in T-11)
 - [ ] T-26 Paged, collapsible groups: files by status on the upload page, pages by classification on the processing page, api paging and group filters — plan in `docs/Previews_and_Paging.md`; after T-19 (batches, paths, `PAGE.sequence`) and T-18 Q11 (document view)
 - [ ] T-27 Files before processing: one WebP preview per file (first page) made when the upload is confirmed, shown in the file list with the original on click; remove a file before processing (row, original, preview; `storage_used` goes down), processed files not yet; names of skipped files shown — same file table as T-26, build together; workflow to be confirmed by Thomas; open: removing a processed file (block, or remove its pages and results like a reset)
 - [ ] T-21 Slice 3: `decide_border` with the tier limit, rules behind a replaceable decision seam, per batch — needs T-19 — `docs/Grouping_and_Classification.md`; replaces T-17
-- [ ] T-22 Slice 4: `assemble_document` with simple attachment links, and the "Dokumente" view and upload into an existing document (from T-19; the user chooses the place, no batch, `PAGE.sequence` in between) — needs T-21 — `docs/Grouping_and_Classification.md`
+- [ ] T-22 Slice 4: `assemble_document` with simple attachment links, and the "Dokumente" view and upload into an existing document (from T-19; the user chooses the place, no batch, `PAGE.sequence` in between) — needs T-21 — `docs/Grouping_and_Classification.md`; also: the golden test measures this stage a second time on golden documents built from the labels (`docs/Golden_Tests.md`)
 - [ ] T-23 Slice 5: `find_sections` with `DOCUMENT_FEATURES` — needs T-22 — `docs/Grouping_and_Classification.md`
-- [ ] T-24 Slice 6: `classify_document`, `check_reference_numbers`, `NOTE` — needs T-23 — `docs/Grouping_and_Classification.md`
+- [ ] T-24 Slice 6: `classify_document`, `check_reference_numbers`, `NOTE` — needs T-23 — `docs/Grouping_and_Classification.md`; also: the golden test measures this stage a second time on golden documents built from the labels (`docs/Golden_Tests.md`)
 - [ ] T-25 Slice 7: duplicate checks for files, pages and documents, reusing `NOTE` — needs T-24 — `docs/Grouping_and_Classification.md`; takes T-14 and T-15
 - [ ] T-7 Fill in `config/prod.yaml` in the source submodule before the first deployment (left empty on purpose, 2026-11-23; `dev.yaml` filled in T-9)
 
