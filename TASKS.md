@@ -4,8 +4,6 @@ Progress tracker only; keeps the next session oriented. Done keeps the last 10 e
 Format and rules: "Tasks" in `AGENTS.md`.
 
 ## In progress
-- [ ] T-35 Robustness of engine, orchestrator and worker (design review 2026-11-26), all fixed before the golden test run: poison result, attempt cap, atomic ack/reap with result post and reconcile, fencing, one lock connection, no re-run on takeover, open-work index, concurrent jobs per worker, priority, token replay, smaller points, pure job graph; targets decided at T-21 — `docs/Engine_Robustness.md` — started 2026-11-26
-  Next: merged into `andreas` (submodule `1c32b2b`, not pushed); Architecture and data model v44; Andreas: push, deploy (migration `f2a8c61d4e93` runs), then T-33; no stop grace period for workers (Andreas, 2026-11-26: not needed)
 - [ ] T-33 Golden dataset on dev, read with the real models and recorded: worker volume for recordings, `MODEL_RECORDINGS` in the dev `.env`, command `app.tools.set_tier` (Enterprise for ~560 pages); Architecture v43 — started 2026-11-25
   Changed 2026-11-26 (golden tests, `docs/Golden_Tests.md`): the one recording run; workers record straight into `ds_recordings` on the share (mounted on the dev core host at `/mnt/nas/paragraph82b/goldendataset`) instead of a volume, so no copy step; Andreas inspects the results in the app, findings go to `ds_findings`
   Next: built (submodule `0721def`, not pushed); T-28 merged (`8066360`); Andreas: push, add `MODEL_RECORDINGS` to the dev `.env`, empty "Mein Betrieb" (reset dev, readme) if needed, set its tier, upload the input folder, start; then copy the recordings into the golden dataset and remove the line again
@@ -23,14 +21,15 @@ Format and rules: "Tasks" in `AGENTS.md`.
 ## Blocked
 
 ## Open
-- [ ] T-34 Golden tests with labels and approved results on the dev core host: replay workflow started by hand (no record mode), `ds_` folders on the share, matching by hash, proposals (classification, order with checks, attachments), reports, snapshot per run, measures for classification and grouping, nothing uploaded to GitHub; architecture section 11 — spec `docs/Golden_Tests.md` — Blocked by: T-33, T-35; tickets T-36 to T-42
-- [ ] T-36 [ready-for-agent] Reading the share: only `1_` folders, only `ds_` writable (`recordings/` → `ds_recordings`), `types.csv`, matching by hash, gaps and renames — parent T-34; Blocked by: T-35; spec `docs/Golden_Tests.md`, section "Tickets"
-- [ ] T-37 [ready-for-agent] Measures and report: page classification, grouping exact/split/joined, `ds_reports`, fail when worse — parent T-34; Blocked by: T-35, T-36; spec `docs/Golden_Tests.md`, section "Tickets"
-- [ ] T-38 [ready-for-agent] Proposals and approval: `*.proposed.csv`, approval by rename, lapse on change, attachments as subfolders, differences fail — parent T-34; Blocked by: T-35, T-37; spec `docs/Golden_Tests.md`, section "Tickets"
-- [ ] T-39 [ready-for-agent] Order proposals with content checks: `position`, `check` — parent T-34; Blocked by: T-35, T-38; spec `docs/Golden_Tests.md`, section "Tickets"
-- [ ] T-40 [ready-for-agent] Snapshots: command into `ds_snapshots`, one at the end of every golden run — parent T-34; Blocked by: T-35, T-36; spec `docs/Golden_Tests.md`, section "Tickets"
-- [ ] T-41 [ready-for-agent] Findings table on the share and anonymous error catalogue — parent T-34; Blocked by: T-35, T-36; spec `docs/Golden_Tests.md`, section "Tickets"
-- [ ] T-42 [ready-for-agent] Golden run on the dev core host: manual workflow, own stack, tier, replay only, no uploads; architecture section 11 — parent T-34; Blocked by: T-35, T-37, T-40; spec `docs/Golden_Tests.md`, section "Tickets"
+- [ ] T-43 Upload list during a running upload: "Ihre Uploads" stays at its old state until the whole upload ends (with ~550 files it looks as if nothing happened); show the files as they arrive, without reloading the list for every file (Andreas, 2026-11-26)
+- [ ] T-34 Golden tests with labels and approved results on the dev core host: replay workflow started by hand (no record mode), `ds_` folders on the share, matching by hash, proposals (classification, order with checks, attachments), reports, snapshot per run, measures for classification and grouping, nothing uploaded to GitHub; architecture section 11 — spec `docs/Golden_Tests.md` — Blocked by: T-33; tickets T-36 to T-42
+- [ ] T-36 [ready-for-agent] Reading the share: only `1_` folders, only `ds_` writable (`recordings/` → `ds_recordings`), `types.csv`, matching by hash, gaps and renames — parent T-34; spec `docs/Golden_Tests.md`, section "Tickets"
+- [ ] T-37 [ready-for-agent] Measures and report: page classification, grouping exact/split/joined, `ds_reports`, fail when worse — parent T-34; Blocked by: T-36; spec `docs/Golden_Tests.md`, section "Tickets"
+- [ ] T-38 [ready-for-agent] Proposals and approval: `*.proposed.csv`, approval by rename, lapse on change, attachments as subfolders, differences fail — parent T-34; Blocked by: T-37; spec `docs/Golden_Tests.md`, section "Tickets"
+- [ ] T-39 [ready-for-agent] Order proposals with content checks: `position`, `check` — parent T-34; Blocked by: T-38; spec `docs/Golden_Tests.md`, section "Tickets"
+- [ ] T-40 [ready-for-agent] Snapshots: command into `ds_snapshots`, one at the end of every golden run — parent T-34; Blocked by: T-36; spec `docs/Golden_Tests.md`, section "Tickets"
+- [ ] T-41 [ready-for-agent] Findings table on the share and anonymous error catalogue — parent T-34; Blocked by: T-36; spec `docs/Golden_Tests.md`, section "Tickets"
+- [ ] T-42 [ready-for-agent] Golden run on the dev core host: manual workflow, own stack, tier, replay only, no uploads; architecture section 11 — parent T-34; Blocked by: T-37, T-40; spec `docs/Golden_Tests.md`, section "Tickets"
 - [ ] T-32 Certificate and address for dev: Let's Encrypt via DNS challenge (provider, token) instead of Caddy's own authority, DNS entry for the address (left open in T-11)
 - [ ] T-26 Paged, collapsible groups: files by status on the upload page, pages by classification on the processing page, api paging and group filters — plan in `docs/Previews_and_Paging.md`; after T-19 (batches, paths, `PAGE.sequence`) and T-18 Q11 (document view)
 - [ ] T-27 Files before processing: one WebP preview per file (first page) made when the upload is confirmed, shown in the file list with the original on click; remove a file before processing (row, original, preview; `storage_used` goes down), processed files not yet; names of skipped files shown — same file table as T-26, build together; workflow to be confirmed by Thomas; open: removing a processed file (block, or remove its pages and results like a reset)
@@ -42,6 +41,7 @@ Format and rules: "Tasks" in `AGENTS.md`.
 - [ ] T-7 Fill in `config/prod.yaml` in the source submodule before the first deployment (left empty on purpose, 2026-11-23; `dev.yaml` filled in T-9)
 
 ## Done
+- [x] T-35 Robustness of engine, orchestrator and worker — done 2026-11-26 — design review findings, job graph, token meter (used/wasted, played-back answers count none), `ds_recordings`; two review rounds each; pushed and deployed (submodule `3f7b1ff`; Architecture and data model v44)
 - [x] T-20 Slice 1: page embeddings and title features — done 2026-11-25 — implemented, two review rounds fixed, merged into `andreas` (submodule `8066360`, not pushed)
 - [x] T-31 Catch-up and undo for embeddings — done 2026-11-25 — start run catches up, re-read clears and re-queues, resets tested (submodule `32078b8`)
 - [x] T-30 `embed_page` after reading — done 2026-11-25 — vector columns, job type, progress stage (submodule `c6dc4d8`)
@@ -51,4 +51,3 @@ Format and rules: "Tasks" in `AGENTS.md`.
 - [x] T-11 Reach the dev environment directly — done 2026-11-25 — Caddy in front of frontend, api and Garage on the dev host, deployed from `andreas` for now (Architecture v35); the deploy switches to `dev` with T-9
 - [x] T-13 Page previews — done 2026-11-25 — WebP previews at ingest and for turned pages, one-off command for older pages, browser cache with the image version in the links, content types (submodule `572030b`, `2855bcf`; Architecture v40); run the command on dev after the next deploy
 - [x] T-18 Plan the job types from embed_page up to classify_document — done 2026-11-25 — plan in `docs/Grouping_and_Classification.md`, data model v42, architecture v39; slices are T-19 to T-25
-- [x] T-16 Frontend tests and recorded model answers — done 2026-11-25 — vitest (19), Playwright on a made-up mini Akt with the fake provider (4 flows), golden tier with recordings per model, local only, skipped with a note without the dataset (submodule `07c71b5`, `b55f421`, review fixes `87b4a26`; Architecture v38)
