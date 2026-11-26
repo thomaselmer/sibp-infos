@@ -106,6 +106,82 @@ flowchart LR
   FS -.-> CD["classify_document<br/>per document"]
 ```
 
+## 5. Inside each job type
+
+Every job type has two halves: the **engine part** (`load_inputs` reads what the task needs from PostgreSQL,
+`apply_result` writes the result and returns the follow-up jobs) and the **worker part** (the task: no database,
+reads and writes files in Garage, calls models). Rate limits, unavailable or busy models put a job back to be tried
+later (`TryLater`), which the graph treats like an expired lease.
+
+### ingest_file
+
+```mermaid
+flowchart TB
+  subgraph E1["Engine: load_inputs"]
+    A1["File: path, type"]
+  end
+  subgraph W["Worker task (no database)"]
+    B1["Read the original from Garage"] --> B2{"PDF or image?"}
+    B2 -- "PDF" --> B3["Split into pages, render each<br/>(limits: pages per PDF, pixels)"]
+    B2 -- "image" --> B4["One page"]
+    B3 --> B5["Store each page image + preview<br/>one at a time"]
+    B4 --> B5
+  end
+  subgraph E2["Engine: apply_result"]
+    C1["Add PAGE rows"] --> C2{"Page within the<br/>tier's page limit?"}
+    C2 -- "yes" --> C3["Follow-up: ocr_page"]
+    C2 -- "no" --> C4["Stored, not read"]
+  end
+  A1 --> B1
+  B5 --> C1
+```
+
+### ocr_page
+
+The worker part is a LangGraph flow: read, clean, turn and read again while the page is rotated (at most `max_turns`).
+
+```mermaid
+flowchart TB
+  subgraph E1["Engine: load_inputs"]
+    A1["Page: image key"]
+  end
+  subgraph W["Worker task: LangGraph flow"]
+    R["read: shrink image (image_max_side, JPEG),<br/>ask the model for text, features,<br/>classification, rotation"] --> CL["clean: strip trailing field dumps<br/>from the text"]
+    CL --> Q{"rotated and<br/>turns left<br/>(max_turns)?"}
+    Q -- "yes" --> T["turn the image upright"] --> R
+    Q -- "no" --> S["if turned: store the turned image<br/>+ preview under its own name"]
+    R -. "rate limit, unavailable,<br/>model busy" .-> TL["try later"]
+  end
+  subgraph E2["Engine: apply_result"]
+    C1["Write text, classification,<br/>PAGE_FEATURES (incl. 11 title_*),<br/>turned image; clear the embedding"] --> C2{"process<br/>and text?"}
+    C2 -- "yes" --> C3["Follow-up: embed_page"]
+    C2 -- "no" --> C4["Done"]
+  end
+  A1 --> R
+  S --> C1
+```
+
+### embed_page
+
+```mermaid
+flowchart TB
+  subgraph E1["Engine: load_inputs"]
+    A1["Page: text"]
+  end
+  subgraph W["Worker task"]
+    B1["Model chain: embedding model, then its fallbacks"] --> B2["Each model cuts the text<br/>to max_input_tokens (tiktoken)"]
+    B2 --> B3["Embed (holds a slot of the model)"]
+    B3 --> B4{"vector has<br/>1536 values?"}
+    B4 -- "no" --> B5["invalid answer: job fails"]
+    B3 -. "rate limit, unavailable,<br/>model busy" .-> TL["try later"]
+  end
+  subgraph E2["Engine: apply_result"]
+    C1["Write PAGE.embedding<br/>and embedding_model"]
+  end
+  A1 --> B1
+  B4 -- "yes" --> C1
+```
+
 ## Graph operations
 
 | Operation | What it does |
