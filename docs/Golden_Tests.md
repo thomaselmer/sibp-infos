@@ -158,6 +158,9 @@ type mapping, and which raw file is which golden file.
 - [ ] Raw files are matched to golden files by content hash; the key of a page is the relative path in the input
   dataset plus the page number
 - [ ] Raw files without a golden file, golden files without a raw file, and renamed files are listed
+- [ ] System files (`Thumbs.db`, `desktop.ini`, `.DS_Store` and other dot-files) are ignored on both sides and not
+  listed as gaps; the existing golden test `test_every_raw_file_is_accepted_and_has_pages` no longer fails on
+  `Thumbs.db` in the input folder
 - [ ] Tested on a small made-up dataset in a temporary folder
 
 ### T-37: Measures and report
