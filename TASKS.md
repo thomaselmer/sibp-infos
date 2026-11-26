@@ -32,7 +32,7 @@ Format and rules: "Tasks" in `AGENTS.md`.
 - [ ] T-7 Fill in `config/prod.yaml` in the source submodule before the first deployment (left empty on purpose, 2026-11-23; `dev.yaml` filled in T-9)
 
 ## Done
-- [x] T-20 Slice 1: page embeddings and title features — done 2026-11-25 — implemented on local submodule branch `page-embeddings` (16 commits ahead of `andreas`, contains it; not pushed); two review rounds fixed; Andreas merges
+- [x] T-20 Slice 1: page embeddings and title features — done 2026-11-25 — implemented, two review rounds fixed, merged into `andreas` (submodule `8066360`, not pushed)
 - [x] T-31 Catch-up and undo for embeddings — done 2026-11-25 — start run catches up, re-read clears and re-queues, resets tested (submodule `32078b8`)
 - [x] T-30 `embed_page` after reading — done 2026-11-25 — vector columns, job type, progress stage (submodule `c6dc4d8`)
 - [x] T-29 Embedding call in the model layer — done 2026-11-25 — shared fallback/slot rules, fake, recordings, `embed` config (submodule `1a7d559`)
