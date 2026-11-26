@@ -139,3 +139,85 @@ nothing can be compared or gone back to.
 - Order to start: T-33 records → first golden run writes proposals → Andreas reviews and approves → later runs
   measure.
 - Re-runs cost no tokens; new raw files or changed prompts need a recording run again.
+
+## Tickets
+
+Task graph for `implement-spec` (entries in `TASKS.md`, parent T-34). Every ticket waits for T-35 (robustness of
+engine, orchestrator and worker; better performance and security first, Andreas, 2026-11-26). After T-35, the
+frontier is T-36; then T-37, T-40 and T-41 in parallel.
+
+### T-36: Reading the share
+**What to build:** one module knows the golden dataset on the share: which folders count, which may be written, the
+type mapping, and which raw file is which golden file.
+**Blocked by:** T-35. **Status:** ready-for-agent
+- [ ] Only `1_` folders count as type folders; every other folder is ignored and never written
+- [ ] Only `ds_` folders are writable by code; `recordings/` is renamed `ds_recordings` (configuration, recorder,
+  replay, existing tests)
+- [ ] `ds_labels/types.csv` is read: per type folder classification, document type, loose files as own documents
+  (default: not grouped); a missing file or folder is reported, not guessed
+- [ ] Raw files are matched to golden files by content hash; the key of a page is the relative path in the input
+  dataset plus the page number
+- [ ] Raw files without a golden file, golden files without a raw file, and renamed files are listed
+- [ ] Tested on a small made-up dataset in a temporary folder
+
+### T-37: Measures and report
+**What to build:** after a golden run, numbers per stage are written to the share and the run fails when they get
+worse.
+**Blocked by:** T-35, T-36. **Status:** ready-for-agent
+- [ ] Page classification right, per class, against `types.csv`
+- [ ] Grouping per golden document: exact, split, joined (sets of pages; loose files and dataset gaps not counted)
+- [ ] `ds_reports/<date>_<time>/`: summary with the numbers and the change against the last run, dataset gaps
+- [ ] The run fails when a number is worse than at the last approved state; no fixed targets
+- [ ] Tested on the made-up dataset with a made-up run result
+
+### T-38: Proposals and approval
+**What to build:** every golden run proposes labels for everything not yet approved; Andreas approves; approved
+labels are the reference.
+**Blocked by:** T-35, T-37. **Status:** ready-for-agent
+- [ ] Per golden document one `*.proposed.csv` in `ds_labels` (mirroring the document folders), one row per page,
+  label values as columns (classification now); pages without a document in one table at the root
+- [ ] Earlier proposals are overwritten, approved files never
+- [ ] Approval by renaming a proposal to the plain file (and an `approve` command)
+- [ ] When a golden document changes, its approved labels become proposals again; the report lists it as
+  "dataset changed"; unaffected documents keep their approval
+- [ ] Documents the run attached to another are proposed as subfolders of their main document
+- [ ] Differences from approved labels are listed in the report and fail the run; differences from proposals are
+  listed as "not yet reviewed"
+
+### T-39: Order proposals with content checks
+**What to build:** the proposals carry the order of pages within a document; only doubtful pages are marked.
+**Blocked by:** T-35, T-38. **Status:** ready-for-agent
+- [ ] `position` by printed page number, else file name
+- [ ] A page is certain only when, compared with the page before, the page number chain fits and all content
+  signals agree (reference number, date, kind of document, no sign of a new document on an inner page, embedding
+  similarity not below the configured threshold)
+- [ ] `check` names the reason for every doubtful page; the threshold is in `config/<env>.yaml`
+- [ ] Unit tests on made-up page features: each signal alone marks a page
+
+### T-40: Snapshots
+**What to build:** the results of any run can be kept on the share, gone back to and compared.
+**Blocked by:** T-35, T-36. **Status:** ready-for-agent
+- [ ] A snapshot command: create, list, restore, compare; stores only in `ds_snapshots`; refused in prod
+- [ ] Every golden run ends with a snapshot
+- [ ] Compare lists changed results per page (classification, features, border, document) by the stable key
+- [ ] Restoring into a separate local database works for analysis without the dev core host
+
+### T-41: Findings and error catalogue
+**What to build:** findings of Andreas and of agents are collected on the share; the repository keeps only an
+anonymous catalogue.
+**Blocked by:** T-35, T-36. **Status:** ready-for-agent
+- [ ] `ds_findings/findings.csv` with key, stage, what is wrong, seen by, status (`open`, `unsure`, `confirmed`,
+  `not an error`), link to a test; created when missing, rows only appended or updated, never deleted by code
+- [ ] `docs/Error_Catalogue.md` in the main repository: error class, stage, cause, finding number; no paths, texts
+  or names
+
+### T-42: Golden run on the dev core host
+**What to build:** Andreas starts the golden run by hand on the dev core host and sees pass or fail.
+**Blocked by:** T-35, T-37, T-40. **Status:** ready-for-agent
+- [ ] A workflow started by hand on the dev core host's runner; never on push
+- [ ] Its own stack and fresh database beside the dev deployment; the project on a tier large enough for the dataset
+  (setting of the golden environment); replay only
+- [ ] No artifacts uploaded; the log shows pass or fail and the report folder, no page text or file names
+- [ ] The dataset paths come from the host's `.env` (`/mnt/nas/paragraph82b/…`)
+- [ ] `Architecture.md` section 11: golden tier on the dev core host, `ds_` folders, labels and approval
+- [ ] Running it (after T-33) is Andreas's step
