@@ -1,9 +1,8 @@
 # paragraph82b — Job Graph
 
-Status: **draft**, describes T-35 (branch `engine-robustness` in the source submodule, not merged yet) · 2026-11-26
+Status: current, describes the job pool after T-35 (submodule `1c32b2b`) · 2026-11-26
 
-How the scheduling core of the processing runtime links jobs. Code: `backend/app/modules/processing/engine/graph.py`
-(after the merge of T-35). The same diagrams as a page: `Job_Graph.html`, published as an artifact:
+How the scheduling core of the processing runtime links jobs. Code: `backend/app/modules/processing/engine/graph.py`. The same diagrams as a page: `Job_Graph.html`, published as an artifact:
 https://claude.ai/artifact/6xjiJ2m2AQugA58F12gza8. Runtime in general: [`Architecture.md`](Architecture.md), section 5;
 tables `JOB`, `JOB_TARGET`, `JOB_DEPENDENCY`: [`Data_Model.md`](Data_Model.md).
 
