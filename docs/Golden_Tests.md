@@ -32,7 +32,7 @@ nothing can be compared or gone back to.
 
 | Folder | Content | Written by |
 |---|---|---|
-| `ds_recordings` | recorded model answers (today `recordings/`, renamed) | the recording run |
+| `ds_recordings` | recorded model answers (was `recordings/`, renamed 2026-11-26) | the recording run |
 | `ds_labels` | `types.csv`; per document one CSV; proposals (`*.proposed.csv`) and approved files | golden runs (proposals only), Andreas (approval) |
 | `ds_reports` | one folder per run (`<date>_<time>`): numbers per stage, differences, pages to review | golden runs |
 | `ds_snapshots` | a database snapshot at the end of every golden run, plus manual ones | golden runs, Andreas |
@@ -152,7 +152,8 @@ type mapping, and which raw file is which golden file.
 **Blocked by:** T-35. **Status:** ready-for-agent
 - [ ] Only `1_` folders count as type folders; every other folder is ignored and never written
 - [ ] Only `ds_` folders are writable by code; `recordings/` is renamed `ds_recordings` (configuration, recorder,
-  replay, existing tests)
+  replay, existing tests) — renamed 2026-11-26 (configuration, golden dataset helper, its test, readme; `ds_`
+  folders are no document types); the enforcement of "only `ds_` writable" is still open
 - [ ] `ds_labels/types.csv` is read: per type folder classification, document type, loose files as own documents
   (default: not grouped); a missing file or folder is reported, not guessed
 - [ ] Raw files are matched to golden files by content hash; the key of a page is the relative path in the input

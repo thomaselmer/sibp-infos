@@ -716,12 +716,13 @@ through wrappers that will handle encryption later; today they pass data through
   copies in the file store. `P82B_GOLDEN_DATASET_DIR` holds the expected result to compare against. **Neither
   folder is ever written to** by the application or the tests; both paths are machine-local, in `.env`. The drive
   does not enforce this yet (the folders are writable for the local user). **Exception** (Andreas, 2026-11-25,
-  T-16): the recorder writes the recorded model answers into `recordings/` of `P82B_GOLDEN_DATASET_DIR`, and nothing
-  else; the dataset fixture skips that folder (top-level folders are document types).
+  T-16): the recorder writes the recorded model answers into `ds_recordings/` of `P82B_GOLDEN_DATASET_DIR`, and
+  nothing else; code writes only into folders starting with `ds_`, and the dataset fixture skips them (top-level
+  folders are document types) (renamed from `recordings/`, Andreas, 2026-11-26, v44).
 - **Golden dataset on dev** (Andreas, 2026-11-25, v43): the golden dataset may be uploaded to dev (internal network)
   and read there with the real models, as a project of its own on a tier large enough for it. The dev workers record
   the answers while `MODEL_RECORDINGS` in their `.env` says so, into a volume of their host; copied into
-  `recordings/` of the golden dataset, they let local runs replay the dataset without tokens. A page whose image
+  `ds_recordings/` of the golden dataset, they let local runs replay the dataset without tokens. A page whose image
   renders differently locally (other library builds) has no recording and is recorded locally. Recordings follow
   the prompt and answer schema: when they change (e.g. T-28), the affected recordings are outdated.
 - **Building it up** (Andreas, 2026-11-23): first run on the raw input, then Andreas reviews the results and reports
@@ -783,6 +784,10 @@ decision).
   - A recording is found by the images of the call and holds a fingerprint of the prompt and the answer schema;
     when they change, the recording is outdated and a replay fails, naming what to record, instead of guessing.
   - The golden dataset is recorded once, on demand (it costs tokens), and again after changes to that logic.
+  - An embedding call counts the total the provider bills (its prompt count if it gives no total) (v44).
+  - A played-back answer counts no tokens, in `record` and `replay` alike: nothing was paid for it, so a run's
+    token usage shows only what that run paid (Andreas, 2026-11-26, v44). The recording keeps what the call once
+    cost.
   - Where recording costs more than it saves (e.g. a flow still changing every day), that test calls the model live
     and is kept out of the default test run.
 - **Exception to "tests use made-up data"** (Andreas, 2026-11-25): the golden tier uses the golden dataset, locally
