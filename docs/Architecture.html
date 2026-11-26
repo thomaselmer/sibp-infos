@@ -72,6 +72,7 @@ footer { font-size: 0.85rem; }
     <nav aria-label="Sections">
       <a href="#picture">Current picture</a>
       <a href="#open">Open decisions</a>
+      <a href="#v44">v44</a>
       <a href="#v43">v43</a>
       <a href="#v42">v42</a>
       <a href="#v41">v41</a>
@@ -277,8 +278,31 @@ footer { font-size: 0.85rem; }
     </table></div>
   </section>
 
+  <section id="v44">
+    <div class="head"><h2>v44</h2><span class="tag current">current</span><span class="muted">2026-11-26 · engine, orchestrator and worker made robust (T-35)</span></div>
+    <div class="tablebox"><table>
+      <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td><span class="kind add">new</span></td><td>A result the engine cannot write fails its job for good, without a retry (the task would give a result that fails again); its writes are undone, the rest of the batch is written</td><td>Design review: one such result stopped the project's engine again after every restart</td></tr>
+        <tr><td><span class="kind add">new</span></td><td>At most <code>max_attempts</code> attempts per job, whatever ended them; failures counted in <code>JOB.failures</code></td><td>Design review: a job killing its worker went round all workers without end; "failed once" was lost with the next expired lease</td></tr>
+        <tr><td><span class="kind chg">changed</span></td><td>Acknowledging a job and posting its result are one step in Redis, as are reaping an expired lease and its result; each engine checks its jobs in the pool every <code>reconcile_seconds</code> and re-sends lost ones (the consistency check of v29, built)</td><td>Design review: a Redis failure between the two steps left a job queued without a result, and its engine busy for good</td></tr>
+        <tr><td><span class="kind chg">changed</span></td><td>Extending, delaying and completing a job act only for the attempt the worker took; a push never replaces a later attempt</td><td>Code review: a worker cut off longer than its lease could, when it came back, take the lease and message of the next attempt</td></tr>
+        <tr><td><span class="kind add">new</span></td><td>Claim epoch per project (<code>ENGINE_CLAIM</code>), checked by every engine transaction</td><td>Design review: with several orchestrator processes, an engine that lost its lock unnoticed could write beside the new one</td></tr>
+        <tr><td><span class="kind chg">changed</span></td><td>One lock connection per orchestrator process holds the advisory locks of all its projects; when it dies, all its engines stop</td><td>Design review: one connection per project would exceed PostgreSQL's connection limit with many projects</td></tr>
+        <tr><td><span class="kind chg">changed</span></td><td>At takeover a job whose result already waits in the stream is not sent again; token counts are keyed by result</td><td>Design review: each orchestrator restart during a run paid such model calls twice; a result read twice was counted twice</td></tr>
+        <tr><td><span class="kind chg">changed</span></td><td>A worker process runs up to <code>worker_concurrency</code> jobs at once; it takes a provider slot together with the job</td><td>Design review: one job per process left provider slots unused; idle workers held slots while polling</td></tr>
+        <tr><td><span class="kind chg">changed</span></td><td>Jobs of "Start run" have the normal priority; the fast lane is for "Apply changes"</td><td>Design review: with every run in the fast lane, the priority had no effect</td></tr>
+        <tr><td><span class="kind chg">changed</span></td><td>A job waiting on a job that failed for good fails too</td><td>Design review: such jobs waited forever and were not seen in the progress</td></tr>
+        <tr><td><span class="kind add">new</span></td><td>The scheduling rules are the job graph, a module without database or Redis; the engine is the shell around it</td><td>Andreas, 2026-11-26: rules tested without PostgreSQL, retry rules in one place</td></tr>
+        <tr><td><span class="kind add">new</span></td><td>Each model call counts its tokens into a meter of its job at once; an attempt without a usable result still reports them (with its failure, or as a tokens-only entry). Each <code>TOKEN_USAGE</code> row says whether the tokens paid for a used result or why not (<code>waste</code>); command <code>app.tools.token_usage</code> shows used and wasted tokens per project, job type and model; the regular check also claims projects with unread results, so tokens reported after the engine was unloaded are recorded</td><td>Andreas, 2026-11-26: tokens of lost, failed and put-back attempts were not counted; show effective and wasted tokens</td></tr>
+        <tr><td><span class="kind add">new</span></td><td>Partial index on waiting and queued jobs for the orchestrator's search for open work</td><td>Design review: it read the whole, ever-growing job table every few seconds</td></tr>
+      </tbody>
+    </table></div>
+    <p class="muted">Findings and fixes: <code>Engine_Robustness.md</code> (T-35); data model v44. Job targets stay as they are until T-21 (Andreas, 2026-11-26).</p>
+  </section>
+
   <section id="v43">
-    <div class="head"><h2>v43</h2><span class="tag current">current</span><span class="muted">2026-11-25 · golden dataset on dev, recorded</span></div>
+    <div class="head"><h2>v43</h2><span class="tag">earlier</span><span class="muted">2026-11-25 · golden dataset on dev, recorded</span></div>
     <div class="tablebox"><table>
       <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
       <tbody>

@@ -70,6 +70,7 @@ footer { font-size: 0.85rem; }
       <a href="#glossary">Terms</a>
       <a href="#actions">User actions</a>
       <a href="#jobtypes">Job types</a>
+      <a href="#changes-v44">Changes v43 → v44</a>
       <a href="#changes-v43">Changes v42 → v43</a>
       <a href="#changes-v42">Changes v41 → v42</a>
       <a href="#changes-v41">Changes v40 → v41</a>
@@ -256,6 +257,23 @@ footer { font-size: 0.85rem; }
     <p class="muted"><strong>Decided (Andreas, 2026-11-23), <code>ocr_page</code>:</strong> it records what is on the page; grouping (<code>decide_border</code>) and document classification interpret it and make no calls of their own on the page image. It fills text on every page, all <code>PAGE_FEATURES</code> including the per-page judgments later steps take as input (<code>indicates_*</code>, <code>is_text_document</code>, <code>is_construction_plan</code>, <code>is_irrelevant</code>), <code>document_type_hint</code> and the page's classification; it also reads all <code>title_*</code> features on every page (Andreas, 2026-11-25, v42). A page is turned at most twice. PDFs are split into pages and read like photos. Deviation from the concept (V03: no text on plans, plant photos and irrelevant pages), to settle with Thomas: text on every page.</p>
     <p class="muted">Decided (Andreas, 2026-11-17): page turning stays inside <code>ocr_page</code>; duplicate checks are separate job types per level (file, page, document). <strong>Decided (Andreas, 2026-11-17):</strong> <code>find_sections</code> runs before the type is known: every document first gets a root section over the whole document, then all candidate section types are looked for beneath it; what was found is reported in <code>DOCUMENT_FEATURES</code>, which <code>classify_document</code> and later steps use.</p>
     <p class="muted"><strong>Decided (Andreas, 2026-11-25, v42), grouping:</strong> grouping runs per batch, the files of one press of "Verarbeitung starten"; within a batch the api orders the files by relative path. The batch's first page and every change between process and <code>keep</code> pages (<code>discard</code> pages skipped) and between photos and PDF pages (v32) are fixed borders. <code>discard</code> pages belong to no document; a skipped <code>discard</code> page ("separator between") and a change of folder are weak inputs only. <code>keep</code> pages form documents of their own; <code>assemble_document</code> attaches each to the process document right before it (<code>DOCUMENT.attached_to_document_id</code>); a later batch never joins an older document. The border decision and the type decision sit behind a seam each, so a trained model can replace the rules later. Plan and reasons: <code>Grouping_and_Classification.md</code>.</p>
+  </section>
+
+  <section id="changes-v44">
+    <div class="head"><h2>Changes v43 → v44</h2><span class="tag">2026-11-26</span></div>
+    <div class="tablebox">
+      <table>
+        <thead><tr><th>Change</th><th>What</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td class="kind add">new</td><td><code>JOB.failures</code>: task failures of the job, apart from expired leases; the first is retried, the second is lasting. <code>JOB.attempts</code> is capped by <code>max_attempts</code> (configuration)</td><td>T-35: "failed once" was read from <code>error</code>, which an expired lease cleared; expired leases were retried without end</td></tr>
+          <tr><td class="kind add">new</td><td><code>ENGINE_CLAIM</code>: one row per project with an <code>epoch</code> raised by each claim; every transaction of an engine checks its epoch</td><td>T-35: an engine whose lock was lost unnoticed could still write beside the new one</td></tr>
+          <tr><td class="kind add">new</td><td><code>TOKEN_USAGE.result_key</code> (unique): the result's id (else job and attempt) and the count's place in the result</td><td>T-35: a result read twice after a crash was counted twice</td></tr>
+          <tr><td class="kind add">new</td><td><code>TOKEN_USAGE.waste</code>: empty when the tokens paid for a result that was used; else why they bought nothing (failed, not_applied, ignored, lease_lost, too_late, put_back). Tokens of attempts without a usable result are now recorded too</td><td>Andreas, 2026-11-26: show effective and wasted tokens</td></tr>
+          <tr><td class="kind chg">changed</td><td>A job waiting on a job that failed for good is failed too; jobs of "Start run" get the normal priority</td><td>T-35: such jobs waited forever unseen; with Start run in the fast lane the priority had no effect</td></tr>
+          <tr><td class="kind add">new</td><td>Partial index <code>ix_job_open</code> on <code>JOB(project_id)</code> for waiting and queued jobs</td><td>T-35: the orchestrator's search for open work read the whole job table every few seconds</td></tr>
+        </tbody>
+      </table>
+    </div>
   </section>
 
   <section id="changes-v43">
@@ -966,8 +984,366 @@ footer { font-size: 0.85rem; }
     </ul>
   </section>
 
+  <section id="v44">
+    <div class="head"><h2>v44</h2><span class="tag current">current draft</span><span class="muted">engine robustness: failures, claims, token keys</span></div>
+    <div class="diagram">
+<pre class="mermaid">
+erDiagram
+    USER ||--o{ PROJECT : owns
+    TIER ||--o{ PROJECT : limits
+    USER ||--o{ PROJECT_ACCESS : receives
+    PROJECT ||--o{ PROJECT_ACCESS : grants
+
+    PROJECT ||--o{ FILE : receives
+    USER o|--o{ FILE : uploads
+    FILE ||--|{ PAGE : yields
+    PROJECT ||--o{ DOCUMENT : contains
+    DOCUMENT o|--o{ PAGE : groups
+    DOCUMENT ||--o| DOCUMENT_FEATURES : described_by
+    DOCUMENT o|--o{ DOCUMENT : attaches
+    DOCUMENT o|--o{ DOCUMENT : duplicate_of
+    PAGE ||--o| PAGE_FEATURES : described_by
+
+    PROJECT ||--o{ REFERENCE_NUMBER : knows
+    DOCUMENT o|--o{ REFERENCE_NUMBER : carries
+
+    DOCUMENT ||--o{ DOCUMENT_SECTION : has
+    DOCUMENT_SECTION o|--o{ DOCUMENT_SECTION : parent_of
+    PAGE ||--o{ DOCUMENT_SECTION : start_boundary
+    PAGE ||--o{ DOCUMENT_SECTION : end_boundary
+
+    PROJECT ||--o{ KEYINFO : contains
+    DOCUMENT_SECTION o|--o{ KEYINFO : originates
+    PAGE o|--o{ KEYINFO : starts
+    PAGE o|--o{ KEYINFO : ends
+    USER o|--o{ KEYINFO : authors
+
+    KEYINFO ||--o{ REQUIREMENT : stated_as
+    REQUIREMENT o|--o{ REQUIREMENT : parent_of
+    KEYINFO ||--o{ EVIDENCE : used_as
+
+    EVIDENCE ||--|{ EVIDENCE_CLAIM : claims
+    REFERENCE_NUMBER o|--o{ EVIDENCE_CLAIM : targets
+    REQUIREMENT o|--o{ EVIDENCE_CLAIM : matched_by
+
+    PROJECT ||--o{ NOTE : has
+    USER o|--o{ NOTE : resolves
+    NOTE ||--|{ NOTE_TARGET : concerns
+    DOCUMENT o|--o{ NOTE_TARGET : target
+    FILE o|--o{ NOTE_TARGET : target
+    PAGE o|--o{ NOTE_TARGET : target
+    REFERENCE_NUMBER o|--o{ NOTE_TARGET : target
+    KEYINFO o|--o{ NOTE_TARGET : target
+    REQUIREMENT o|--o{ NOTE_TARGET : target
+    EVIDENCE_CLAIM o|--o{ NOTE_TARGET : target
+
+    PROJECT ||--o{ EVENT : records
+    USER o|--o{ EVENT : triggers
+    PROJECT ||--o{ JOB : has
+    JOB ||--|{ JOB_TARGET : uses
+    JOB ||--o{ JOB_DEPENDENCY : waits_for
+    JOB ||--o{ JOB_DEPENDENCY : needed_by
+    FILE o|--o{ JOB_TARGET : target
+    PAGE o|--o{ JOB_TARGET : target
+    DOCUMENT o|--o{ JOB_TARGET : target
+    DOCUMENT_SECTION o|--o{ JOB_TARGET : target
+    KEYINFO o|--o{ JOB_TARGET : target
+    REQUIREMENT o|--o{ JOB_TARGET : target
+    EVIDENCE_CLAIM o|--o{ JOB_TARGET : target
+    PROJECT ||--o{ TOKEN_USAGE : costs
+    PROJECT ||--o| ENGINE_CLAIM : claimed_by
+    JOB o|--o{ TOKEN_USAGE : records
+
+    USER {
+        uuid id PK
+        string name
+        string email
+        string role
+        string pwd_hash
+    }
+
+    TIER {
+        uuid id PK
+        string name "unique, e.g. basis"
+        string label "shown, e.g. Basis"
+        int planned_pages
+        int page_margin_percent "pages read: planned plus margin"
+        bigint max_project_bytes "storage for uploads"
+        bool is_default "new projects get it; exactly one"
+    }
+    PROJECT {
+        uuid id PK
+        uuid owner_user_id FK
+        uuid tier_id FK
+        string name
+        string address
+        datetime created_at
+        datetime updated_at
+        datetime deleted_at
+    }
+
+    PROJECT_ACCESS {
+        uuid id PK
+        uuid project_id FK
+        uuid user_id FK
+        string access_tier
+    }
+
+    FILE {
+        uuid id PK
+        uuid project_id FK
+        uuid uploaded_by_user_id FK "nullable"
+        string file_type "image or pdf"
+        string original_name "confidential"
+        string path
+        string relative_path "nullable, path within an uploaded folder; confidential"
+        bigint size_bytes "declared on upload, checked against the stored file"
+        string upload_state "pending or ready"
+        string content_hash "nullable until ready"
+        int page_count "nullable until ready"
+        int upload_position "order within the batch, set by the api by relative path"
+        int batch "nullable, set on Verarbeitung starten; empty when uploaded into a document"
+        int pages_before "nullable, pages of all earlier files in Akt order, counted on upload; set with the batch"
+        string duplicate_state "nullable, original or duplicate"
+        datetime uploaded_at
+        datetime upload_seen_at "last sign of life of a pending upload"
+    }
+
+    PAGE {
+        uuid id PK
+
+        uuid project_id FK "every content row carries its project"
+        uuid file_id FK
+        uuid document_id FK "nullable"
+        int file_page_index "0 for an image"
+        int position "place within its document; set by grouping, changed by moves"
+        int sequence "place in the original Akt; set from the batch order, never changed by moves"
+        string image_path "rendered or rotated version"
+        string classification "process, keep, discard; set by ocr_page"
+        string border_before "open, new_document, continuation"
+        float border_score "nullable, confidence 0 to 1 that border_before is right"
+        jsonb border_rules "nullable, names and points of the rules that fired"
+        string duplicate_state "nullable, original or duplicate"
+        text text "OCR text of this page; confidential"
+        vector embedding "nullable, from text"
+        string embedding_model "nullable, model of the vector"
+    }
+
+    PAGE_FEATURES {
+        uuid id PK
+        uuid page_id FK "one per page"
+        int page_number "nullable, as printed"
+        int total_page_number "nullable, of x"
+        string reference_number_raw "nullable, as read on the page"
+        date date "nullable, as read on the page"
+        string document_type_hint "nullable, the likely kind of the page (concept kinds, D04, V03)"
+        bool is_text_document
+        bool is_construction_plan
+        bool is_irrelevant
+        bool has_letterhead
+        bool has_subject
+        bool has_stamp
+        bool indicates_new_document
+        bool indicates_finished_document
+        bool indicates_continuation
+        bool title_authority "nullable until read; all title_ features read on every page"
+        bool title_reference_number "nullable"
+        bool title_gegenstand_der_amtshandlung "nullable"
+        bool title_ort_der_amtshandlung "nullable"
+        bool title_beginn_der_amtshandlung "nullable"
+        bool title_verhandlungsleiter "nullable"
+        bool title_anwesende_personen "nullable"
+        bool title_verhandlungsschrift "nullable"
+        bool title_bescheid "nullable"
+        bool title_spruch "nullable"
+        bool title_betreff "nullable"
+    }
+
+    DOCUMENT_FEATURES {
+        uuid id PK
+        uuid document_id FK "one per document"
+        bool is_authority_document
+        string subtype_hint "nullable, e.g. email, data sheet"
+        bool has_gegenstand
+        bool has_organe
+        bool has_verhandlungsleiter
+        bool has_verfahrensanordnung
+        bool has_stellungnahme
+        bool has_auflagen
+        bool has_bescheid_spruch
+        bool has_rechtsgrundlage
+        bool has_rechtsmittelbelehrung
+        bool has_verfahrenskosten
+        bool has_ergeht_an
+    }
+
+    DOCUMENT {
+        uuid id PK
+        uuid project_id FK
+        uuid attached_to_document_id FK "nullable, main document of an attachment"
+        uuid duplicate_of_document_id FK "nullable, original of a duplicate"
+        string document_type
+        string short_title "nullable, generated; confidential"
+        date stated_date "nullable, date written in the document"
+        string duplicate_state "nullable, original or duplicate"
+    }
+
+    REFERENCE_NUMBER {
+        uuid id PK
+        uuid project_id FK
+        uuid document_id FK "nullable, null = document missing"
+        string raw "as read"
+        string normalized "unique per project"
+        date stated_date "nullable, known date; also from a Pruefdokument when the document is missing"
+    }
+
+    DOCUMENT_SECTION {
+        uuid id PK
+        uuid document_id FK
+        uuid parent_section_id FK
+        uuid start_page_id FK
+        uuid end_page_id FK
+        int start_line
+        int end_line
+        string section_type
+    }
+
+    KEYINFO {
+        uuid id PK
+        uuid project_id FK
+        uuid source_section_id FK "nullable"
+        uuid start_page_id FK "nullable"
+        uuid end_page_id FK "nullable"
+        uuid author_user_id FK "nullable, set for comments"
+        int start_line "nullable"
+        int end_line "nullable"
+        string creation_method "extraction, agent, user, onboarding"
+        text text "verbatim document text, stored copy; confidential"
+        vector embedding "nullable, from text"
+        string embedding_model "nullable, model of the vector"
+    }
+
+    REQUIREMENT {
+        uuid id PK
+        uuid keyinfo_id FK
+        uuid parent_requirement_id FK "nullable"
+        string point_raw "nullable, as written, e.g. 4.2, IV, b)"
+        int point "nullable, last level as integer"
+        string category "nullable, 13 subject categories"
+        interval time_interval "nullable"
+        text summary "generated; confidential"
+    }
+
+    EVIDENCE {
+        uuid id PK
+        uuid keyinfo_id FK
+        string kind "erfuellt, teilweise, mangelhaft, nicht_erfuellt, hinfaellig, ersetzt"
+        text summary "generated; confidential"
+    }
+
+    EVIDENCE_CLAIM {
+        uuid id PK
+        uuid evidence_id FK
+        uuid target_reference_number_id FK "nullable"
+        uuid requirement_id FK "nullable, null = not matched"
+        string target_point_raw "nullable, as written"
+        int target_point "nullable, last level as integer"
+        string matched_by "code, llm, user"
+    }
+
+    NOTE {
+        uuid id PK
+        uuid project_id FK
+        uuid resolved_by_user_id FK "nullable"
+        string severity
+        string status "open, resolved"
+        text text "confidential"
+        text resolution "nullable, what was decided; confidential"
+        datetime created_at
+        datetime resolved_at "nullable"
+    }
+
+    NOTE_TARGET {
+        uuid id PK
+        uuid note_id FK
+        uuid document_id FK "nullable"
+        uuid file_id FK "nullable"
+        uuid page_id FK "nullable"
+        uuid reference_number_id FK "nullable"
+        uuid keyinfo_id FK "nullable"
+        uuid requirement_id FK "nullable"
+        uuid evidence_claim_id FK "nullable"
+    }
+
+    EVENT {
+        uuid id PK
+        uuid project_id FK
+        uuid user_id FK "nullable, set for user events"
+        string origin "user or autonomous"
+        string event_type "user actions and events meaningful to the user; no job_done"
+        jsonb details "ids and labels of the objects concerned, roles (from, to), old and new values; confidential"
+        datetime created_at
+        datetime processed_at "nullable"
+    }
+
+    JOB_DEPENDENCY {
+        uuid id PK
+        uuid job_id FK "the waiting job"
+        uuid depends_on_job_id FK "must be done first"
+    }
+
+    JOB_TARGET {
+        uuid id PK
+        uuid job_id FK
+        string access "read or write"
+        uuid file_id FK "nullable"
+        uuid page_id FK "nullable"
+        uuid document_id FK "nullable"
+        uuid section_id FK "nullable"
+        uuid keyinfo_id FK "nullable"
+        uuid requirement_id FK "nullable"
+        uuid evidence_claim_id FK "nullable"
+    }
+
+    JOB {
+        uuid id PK
+        uuid project_id FK
+        string job_type "task to run; preconditions per type in code"
+        string status "waiting, queued, done, failed"
+        int priority "0 fast lane (Apply changes), 1 normal (also Start run)"
+        int attempts "all attempts, at most max_attempts"
+        int failures "task failures; the first is retried, the second is lasting"
+        int timeout_seconds "raised on retry"
+        string worker_id "nullable, from the result"
+        text error "nullable"
+        datetime created_at
+        datetime started_at "nullable, from the result"
+    }
+
+    TOKEN_USAGE {
+        uuid id PK
+        uuid project_id FK
+        uuid job_id FK "nullable, cleared when the job is deleted"
+        string job_type "kept when the job is gone"
+        datetime created_at
+        int input
+        int reasoning
+        int output
+        string model
+        string result_key "unique, nullable: result id, n-th count"
+        string waste "nullable: empty when used; else why wasted"
+    }
+
+    ENGINE_CLAIM {
+        uuid project_id PK "FK"
+        bigint epoch "raised by each claim; checked by every engine transaction"
+    }
+</pre>
+    </div>
+  </section>
+
   <section id="v43">
-    <div class="head"><h2>v43</h2><span class="tag current">current draft</span><span class="muted">pages before a file, batch at the press</span></div>
+    <div class="head"><h2>v43</h2><span class="tag">earlier</span><span class="muted">pages before a file, batch at the press</span></div>
     <div class="diagram">
 <pre class="mermaid">
 erDiagram

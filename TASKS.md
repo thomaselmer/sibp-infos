@@ -4,6 +4,8 @@ Progress tracker only; keeps the next session oriented. Done keeps the last 10 e
 Format and rules: "Tasks" in `AGENTS.md`.
 
 ## In progress
+- [ ] T-35 Robustness of engine, orchestrator and worker (design review 2026-11-26), all fixed before the golden test run: poison result, attempt cap, atomic ack/reap with result post and reconcile, fencing, one lock connection, no re-run on takeover, open-work index, concurrent jobs per worker, priority, token replay, smaller points, pure job graph; targets decided at T-21 — `docs/Engine_Robustness.md` — started 2026-11-26
+  Next: merged into `andreas` (submodule `1c32b2b`, not pushed); Architecture and data model v44; Andreas: push, deploy (migration `f2a8c61d4e93` runs), then T-33; no stop grace period for workers (Andreas, 2026-11-26: not needed)
 - [ ] T-33 Golden dataset on dev, read with the real models and recorded: worker volume for recordings, `MODEL_RECORDINGS` in the dev `.env`, command `app.tools.set_tier` (Enterprise for ~560 pages); Architecture v43 — started 2026-11-25
   Changed 2026-11-26 (golden tests, `docs/Golden_Tests.md`): the one recording run; workers record straight into `ds_recordings` on the share (mounted on the dev core host at `/mnt/nas/paragraph82b/goldendataset`) instead of a volume, so no copy step; Andreas inspects the results in the app, findings go to `ds_findings`
   Next: built (submodule `0721def`, not pushed); T-28 merged (`8066360`); Andreas: push, add `MODEL_RECORDINGS` to the dev `.env`, empty "Mein Betrieb" (reset dev, readme) if needed, set its tier, upload the input folder, start; then copy the recordings into the golden dataset and remove the line again

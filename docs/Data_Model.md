@@ -1,6 +1,6 @@
 # paragraph82b — Data Model
 
-Status: **draft** · current version **v43** · 2026-11-25
+Status: **draft** · current version **v44** · 2026-11-26
 
 Final result only: this file shows the current model. How it got here (all versions and changes) is in `Data_Model.html`, published as an artifact: https://claude.ai/artifact/EHPCd6tJNDvKj14RwmwSH6. English names, each mapped to a concept term (see `GLOSSARY.md`). How the software works (orchestrator, workers, monitoring) is in [`Architecture.md`](Architecture.md).
 
@@ -146,6 +146,7 @@ KEYINFO o|--o{ JOB_TARGET : target
 REQUIREMENT o|--o{ JOB_TARGET : target
 EVIDENCE_CLAIM o|--o{ JOB_TARGET : target
 PROJECT ||--o{ TOKEN_USAGE : costs
+PROJECT ||--o| ENGINE_CLAIM : claimed_by
 JOB o|--o{ TOKEN_USAGE : records
 USER {
 uuid id PK
@@ -383,8 +384,9 @@ uuid id PK
 uuid project_id FK
 string job_type "task to run; preconditions per type in code"
 string status "waiting, queued, done, failed; running is known in Redis only"
-int priority "0 fast lane (Apply changes), 1 normal"
-int attempts
+int priority "0 fast lane (Apply changes), 1 normal (also Start run)"
+int attempts "all attempts, at most max_attempts"
+int failures "task failures; the first is retried, the second is lasting"
 int timeout_seconds "raised on retry"
 string worker_id "nullable, from the result"
 text error "nullable"
@@ -401,6 +403,12 @@ int input
 int reasoning
 int output
 string model
+string result_key "unique, nullable: result id (else job and attempt), n-th count; a result read twice counts once"
+string waste "nullable: empty when the tokens paid for a used result; else failed, not_applied, ignored, lease_lost, too_late, put_back"
+}
+ENGINE_CLAIM {
+uuid project_id PK "FK"
+bigint epoch "raised by each claim of the project; every engine transaction checks it"
 }
 ```
 

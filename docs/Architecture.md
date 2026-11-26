@@ -1,6 +1,6 @@
 # paragraph82b — Software Architecture
 
-Status: **draft** · Version 43 · 2026-11-25 · Task T-3
+Status: **draft** · Version 44 · 2026-11-26 · Task T-3
 
 Final result only: this file always shows the current architecture. How it got here (versions, decisions,
 reasons) is in `Architecture.html`, published as an artifact: https://claude.ai/artifact/W6NpC843bDsLgYiUH15Ljj. Data structures are in [`Data_Model.md`](Data_Model.md); the concept in `infos/`
@@ -217,10 +217,21 @@ Decided so far (data model, section "Architecture, not ER model", and versions v
 - **Failures** (Andreas, 2026-11-17, v23): a temporary failure is retried at once with a higher timeout; if that
   fails, it is lasting — job failed, a note on the failed object, new jobs only after user input. A failure never
   blocks other jobs; jobs that depend on missing or invalid data do not start.
+  - A result the engine cannot write (its job type raises while writing it) fails its job for good, without a
+    retry, since the task would return a result that fails again; its writes are undone and the other results of
+    the batch are written (v44).
+  - Every job has at most `max_attempts` attempts (configuration), whatever ended them, so a job that kills its
+    worker each time fails instead of going round all workers; the failure count is kept in `JOB.failures` (v44).
+  - A job waiting on a job that failed for good fails too, so nothing waits forever unseen (v44).
 - **Restart** (v28): jobs that were in the pool go back to queued (attempt + 1); a job whose lease expired is
-  treated the same. Token usage of a crashed attempt may be lost.
-- **Consistency check** (v29): from time to time (e.g. when a project is idle) waiting jobs must still wait for
-  something and jobs in the pool must be in Redis; findings go to monitoring.
+  treated the same. A job whose result already waits in the result stream is not sent again (v44). Token counts
+  carry a key of their result, so a result read twice is counted once; tokens of the lost attempt are recorded as
+  wasted if its worker is still alive (v44).
+- **Consistency check** (v29, built v44): every `reconcile_seconds` each engine checks that its jobs in the pool are
+  in Redis or answered in the result stream, and re-sends the others (a push or a result lost to a Redis failure).
+  Waiting jobs are not checked yet.
+- **The scheduling rules** (dependencies, targets, priority, retries) are a module of their own without database or
+  Redis, the job graph; the engine reads and writes PostgreSQL and Redis around it (v44).
 - **User changes** are collected and processed on "Apply changes", like "Start run" (Andreas, 2026-11-17).
 - **Job types** up to key info extraction: see `Data_Model.md`, "Job types".
 
@@ -235,18 +246,27 @@ Decided so far (data model, section "Architecture, not ER model", and versions v
   that hosts many engines and knows no project logic.
 - **The orchestrator process** (Andreas, 2026-11-18) only does operations:
   1. **wakes engines:** PostgreSQL reports each new user event at once (`LISTEN/NOTIFY`); if no engine holds the
-     project, the process claims it and starts its engine; a check every few seconds catches missed reports;
+     project, the process claims it and starts its engine; a check every few seconds catches missed reports, and
+     also claims projects whose result stream holds unread results (e.g. tokens a late attempt reported after the
+     engine was unloaded; v44);
   2. **unloads engines** of projects with nothing to do: no unconsumed event, no job in the pool, no waiting job
-     that could run now. Jobs that wait for user input (e.g. after a failure) do not keep an engine alive;
-  3. **reaps expired leases** and hands them to the project's engine (attempt + 1);
+     that could run now. Jobs that wait for user input (e.g. after a failure) do not keep an engine alive; and has
+     each engine run its consistency check now and then;
+  3. **reaps expired leases** and hands them to the project's engine (attempt + 1); the reaping and the result
+     "lease expired" are one step in Redis (v44);
   4. **reads the result streams** of its engines in one Redis call (a shortcut only).
 - **Distributed:** orchestrator processes and workers run on any servers; they need the same PostgreSQL and Redis,
-  workers also the file store. The project lock is a PostgreSQL advisory lock bound to the process's connection,
-  so it is released when the process or its connection dies. An engine that loses its connection or lock stops at
-  once. Each process takes at most a configured number of engines, so load spreads without a central scheduler.
+  workers also the file store. The project lock is a PostgreSQL advisory lock; all locks of a process live on one
+  connection of its own, so they are released when the process or that connection dies, and the process then
+  stops all its engines (v44). The lock decides who runs an engine; what an engine writes is guarded by a claim
+  epoch (`ENGINE_CLAIM`): each claim raises it, every transaction of the engine checks it, so an engine that lost
+  its project unnoticed writes nothing more (v44). Each process takes at most a configured number of engines, so
+  load spreads without a central scheduler. The regular check reads which projects are locked elsewhere from
+  `pg_locks` in one query and tries no lock on them (v44).
 - **Redis as message channel.** The engine puts runnable jobs with their inputs into Redis lane queues; workers take
-  them, send heartbeats and post typed results to the project's result stream. A job taken but not
-  acknowledged by a dead worker goes back to queued (restart rule above). Details below.
+  them, send heartbeats and post typed results to the project's result stream; acknowledging a job and posting
+  its result are one step (v44). A job taken but not acknowledged by a dead worker goes back to queued (restart
+  rule above). Details below.
 - **Large inputs through object storage.** A job message holds ids, texts and object-storage keys. The worker reads
   images straight from object storage and saves new files there (e.g. a turned page), returning the key in its
   result. Workers never touch the database.
@@ -296,16 +316,16 @@ sequenceDiagram
   participant M as model provider
   API->>DB: store user event, NOTIFY (one transaction)
   DB-->>ORC: notification with the project id
-  ORC->>DB: claim project (advisory lock), start engine if none holds it
+  ORC->>DB: claim project (advisory lock), start engine if none holds it; the engine raises the claim epoch
   ENG->>DB: consume event, create jobs and dependencies (one transaction)
   ENG->>R: push runnable jobs to their lanes (ids, keys, texts)
-  W->>R: take job with lease (provider lanes: take a slot of the provider first)
+  W->>R: take job with lease (provider lanes: with a slot of the provider, in the same step)
   W-->>R: heartbeats extend the lease while the task runs
   W->>FS: read original or page image
   W->>R: take a slot of the model (none free: the job waits)
   W->>M: model call(s), each holding a slot of its model, fallbacks included
   W->>FS: save new files under a name of this attempt
-  W->>R: acknowledge, post result to the project's result stream
+  W->>R: acknowledge and post the result to the project's result stream (one step)
   ORC->>R: read the result streams of all its engines
   ORC->>ENG: hand over the results
   ENG->>DB: write results, set done, create follow-ups (one transaction)
@@ -319,12 +339,13 @@ stateDiagram-v2
   waiting --> queued: dependencies done, targets free, under the project cap
   queued --> done: result of the current attempt
   queued --> waiting: lease expired, or first failure (timeout doubled)
-  queued --> failed: second failure
+  queued --> failed: second failure, or max_attempts reached
+  waiting --> failed: a job it waits on failed
   failed --> waiting: user input, e.g. start run again
 ```
 
 - Redis holds only messages in transit; PostgreSQL stays the source of truth (jobs, events, results). After a Redis
-  loss the engine re-sends queued jobs from the database.
+  loss the engine re-sends queued jobs from the database (at takeover and in its consistency check).
 
 ### Job pool, lanes and fairness
 
@@ -353,10 +374,11 @@ stateDiagram-v2
   `code`. Switching a job type's model to one of another provider moves its jobs to that provider's lane. Note:
   OpenAI states its rate limits per model; two models of one provider now share one limit.
 - **Sorted queue per lane** (Redis sorted set). The rank is priority first, then time. Jobs from "Apply changes" get
-  the fast lane priority and come before waiting jobs of other projects; more priority levels are possible.
-- **Semaphore per provider, taken before the job.** A worker goes through the lanes; for a provider lane it first
-  takes a slot of that provider's semaphore (size in configuration) and only then takes the first job of the lane. No free slot:
-  it skips the lane. No job: it gives the slot back.
+  the fast lane priority and come before waiting jobs of other projects; jobs of "Start run" and their follow-ups
+  get the normal priority (v44); more priority levels are possible.
+- **Semaphore per provider, taken with the job** (v44; was: before the job). A worker goes through the lanes; for a
+  provider lane it takes the first job of the lane and a slot of that provider's semaphore (size in configuration)
+  in one step. No free slot: it skips the lane. No job: it takes no slot, so idle workers never hold slots.
   - Slots are leases with an expiry, extended by the worker's heartbeat; a dead worker's slot frees itself.
 - **Limit per model, taken per call** (Andreas, 2026-11-25): besides the provider slot, every model call holds a slot
   of the model it calls (`max_parallel` of the model, else `default_max_parallel`), a fallback's call a slot of the
@@ -367,8 +389,11 @@ stateDiagram-v2
   Redis failing never fails the call: no slot can be taken means the job waits; a slot that cannot be given back
   frees itself when its lease runs out.
 - **Taking a job is a lease too.** Taking moves the job atomically from the queue to the lane's in-flight set with an
-  expiry; the worker's heartbeat extends it; acknowledging the result removes it. An expired lease (dead worker) puts
-  the job back as queued (restart rule). Sorted sets do not bring this, so it is built into the queue code.
+  expiry; the worker's heartbeat extends it; completing the job removes it and posts the result in the same step, so
+  a job never leaves the lane without its result (v44). Extending, delaying and completing act only for the attempt
+  the worker took, and a push never replaces a later attempt of the job, so a worker or engine that lost its job
+  cannot disturb the next attempt (v44). An expired lease (dead worker) puts the job back as queued
+  (restart rule). Sorted sets do not bring this, so it is built into the queue code.
 - **Cap per project.** An engine keeps at most N of its jobs in the pool at once, over all lanes (queued plus
   running; N in configuration). It holds back the rest and adds more as results arrive, so a 5,000-page Akt cannot
   crowd out a small project.
@@ -376,6 +401,8 @@ stateDiagram-v2
   future); this counts as no attempt and does not raise the timeout.
 - Limits on tokens per minute are not covered; a token bucket can be added later on the same principle.
 - Workers serve all lanes in the MVP; a worker can be limited to some lanes by configuration (e.g. own OCR workers).
+- A worker process runs up to `worker_concurrency` jobs at once (configuration), since its tasks mostly wait on
+  model calls; the semaphores stay the limit over all workers (v44).
 
 | Mechanism | Solves |
 |---|---|
@@ -412,6 +439,14 @@ stateDiagram-v2
   processed in prod.
 - **Token usage** is recorded per call (model, input, reasoning, output) and returned with the job result; the
   orchestrator writes TOKEN_USAGE (data model).
+  - Each call also counts into a meter of the job it runs in, at once (v44). So an attempt that ends without a
+    usable result still reports what it spent: with its failure, or, when it sends no result (lease lost, too late,
+    put back after a rate limit), as a tokens-only entry in the result stream. Only a worker that dies loses its
+    count; the provider's own usage page still shows it.
+  - Each row says whether its tokens paid for a result that was used or why they bought nothing (`waste`: failed,
+    not_applied, ignored, lease_lost, too_late, put_back), so a run's cost splits into used and wasted tokens
+    (v44). The command `app.tools.token_usage` shows both per project, job type and model; the internal status
+    page (section 10) can read the same.
 
 | Job type (up to key info extraction) | Model use |
 |---|---|
